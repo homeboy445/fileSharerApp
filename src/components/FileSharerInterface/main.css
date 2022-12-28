@@ -1,0 +1,77 @@
+.main-container-1 {
+    position: fixed;
+    top: 10%;
+    left: 5%;
+    background: white;
+    width: 50%;
+    display: flex;
+    justify-content: space-between;
+    align-items: space-between;
+    padding: 5%;
+}
+
+.main-file-info-bx {
+    border: 2px dashed black;
+    border-radius: 4px;
+    margin: 5%;
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 4%;
+    padding-bottom: 4%;
+    height: 100%;
+    align-items: center;
+}
+
+.main-file-info-bx > h2 {
+    font-size: 2rem;
+}
+
+.main-file-info-bx > ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    align-items: left;
+}
+
+.main-file-info-bx > ul > li {
+    list-style: none;
+    font-size: 1.5rem;
+    display: inline-block;
+}
+
+.main-file-info-bx > img {
+    width: 30%;
+}
+
+.main-file-transmission-section {
+    border: 2px solid black;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-file-link-handle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid black;
+    padding: 5%;
+}
+
+.main-file-send-cancel > button {
+    margin-top: 2%;
+    margin-bottom: 2%;
+}
+
+.main-file-send-cancel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
