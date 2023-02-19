@@ -26,15 +26,21 @@ const App = () => {
 
   const queryParams = getParamsObject();
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    console.log("qParams: ", queryParams['id']);
+    if (!!queryParams['id'] && !showFileSharerDialog) {
+      toggleDialog(true);
+    }
+  }, [showFileSharerDialog]);
 
   return (
     <div>
       <div
         className="container"
         style={{
-          opacity: showFileSharerDialog || !!queryParams['id'] ? "0.4" : "1",
-          pointerEvents: showFileSharerDialog || !!queryParams['id'] ? "none" : "all",
+          opacity: showFileSharerDialog ? "0.4" : "1",
+          pointerEvents: showFileSharerDialog ? "none" : "all",
+          backdropFilter: showFileSharerDialog ? 'none' : 'blur(5%)'
         }}
       >
         <div className="msg-box-1">
@@ -57,6 +63,7 @@ const App = () => {
               ref={fileRef}
               onChange={(e) => {
                 updateFileObject((e as any).target.files[0]);
+                (window as any).file = (e as any).target.files[0];
                 if ((e as any).target.files.length > 0) {
                   toggleDialog(true);
                 }
@@ -75,15 +82,16 @@ const App = () => {
             >
               Choose File
             </button>
-            <span> ----- OR ----- </span>
-            <button id="recieve-file">Recieve File</button>
           </div>
         </div>
       </div>
       {(showFileSharerDialog && fileObject !== null) || !!queryParams['id'] ? (
         <FileSharerDialog
           fileHandlerInstance={!fileObject ? null : new FileHandler(fileObject)}
-          closeDialogBox={() => toggleDialog(false)}
+          closeDialogBox={() => {
+            window.location.href = "/";
+            toggleDialog(false);
+          }}
           uniqueId={queryParams['id'] ?? uuidv4()}
           recieveFile={!!queryParams['id']}
         />

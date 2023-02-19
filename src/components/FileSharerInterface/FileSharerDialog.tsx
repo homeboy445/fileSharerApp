@@ -30,6 +30,9 @@ const FileSharerDialog = ({
     size: fileHandlerInstance?.fileObject?.size,
   });
   const [userCount, updateUserCount] = useState(0);
+  const [objectLink, updateObjectLink] = useState<string | null>(null);
+  const [currentFileName, updateCurrentFileName] = useState<string>("unknown");
+  const [inputUrlValue, updateInputUrlValue] = useState(`http://localhost:3000?id=${uniqueId}`);
 
   const checkIfRoomValid = () => {
     axios
@@ -54,6 +57,21 @@ const FileSharerDialog = ({
         socketIO.emit("join-room", { id: uniqueId });
         updateRoomState(true);
       }
+      socketIO.on("recieveFile", (data) => {
+        console.log("Received the file!", data);
+        FileHandler.processReceivedChunk(
+          data,
+          (blobObj: Blob, fileData: { fileName: string }) => {
+            (window as any).info = { blobObj, fileData };
+            updateObjectLink(URL.createObjectURL(blobObj));
+            updateCurrentFileName(fileData.fileName);
+          }
+        );
+        updateProgress(data.percentageCompleted || 0);
+      });
+      socketIO.on("roomInvalidated", () => {
+        window.location.href = "/";
+      });
     } else {
       socketIO.on("connect", () => {
         console.log("connected!");
@@ -70,15 +88,19 @@ const FileSharerDialog = ({
         updateRoomState(true);
       }
       socketIO.on(uniqueId + ":users", (data) => {
+        console.log("user connected!");
         updateUserCount(data.userCount);
       });
+      socketIO.emit("sendFile", { data: "Hello there!", roomId: uniqueId });
     }
     return () => {
       socketIO.off("connect");
       socketIO.off(uniqueId + ":users");
+      socketIO.off("recieveFile");
     };
-  }, [sentPercentage]);
+  }, []);
 
+  console.log("recievFile: ", recieveFile);
   return (
     <div className="main-parent">
       <div className="main-container-1">
@@ -109,13 +131,43 @@ const FileSharerDialog = ({
               </h2>
               <QRCode value={"testing"} size={256} style={{ margin: "5%" }} />
               <h2>Or, share this link...</h2>
-              <input type="text" value={"Some xyz link"} />
+              <input
+                type="text"
+                readOnly={true}
+                value={inputUrlValue}
+                style={{ color: inputUrlValue === "Copied to clipboard!" ? "green" : "black" }}
+                onClick={() => {
+                  if (inputUrlValue === "Copied to clipboard!") {
+                    return;
+                  }
+                  window.navigator.clipboard.writeText(inputUrlValue);
+                  const url = inputUrlValue;
+                  updateInputUrlValue("Copied to clipboard!");
+                  setTimeout(() => {
+                    updateInputUrlValue(url);
+                  }, 1000);
+                }}
+              />
             </div>
           ) : (
-            <div style={{ width: "80%", height: "500px", padding: "5%" }}>
+            <div
+              style={{
+                width: "80%",
+                height: "500px",
+                padding: "5%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <CircularProgressbar
                 value={sentPercentage}
-                text={sentPercentage === 101 ? "Done!" : `${sentPercentage}%`}
+                text={
+                  sentPercentage === 101
+                    ? "Done!"
+                    : `${sentPercentage == -1 ? 0 : sentPercentage}%`
+                }
                 strokeWidth={1}
                 styles={buildStyles({
                   pathColor:
@@ -123,6 +175,16 @@ const FileSharerDialog = ({
                   textColor: "blue",
                 })}
               />
+              {objectLink != null ? (
+                <a
+                  href={objectLink}
+                  id="downloadLink"
+                  download={currentFileName}
+                  onClick={closeDialogBox}
+                >
+                  Download File
+                </a>
+              ) : null}
             </div>
           )}
           <div
@@ -133,28 +195,35 @@ const FileSharerDialog = ({
             }}
           >
             <button
-              disabled={sentPercentage !== -1}
+              disabled={sentPercentage !== -1 || userCount === 0}
               onClick={() => {
-                let counter = sentPercentage;
-                let it = setInterval(() => {
-                  counter += 1;
-                  updateProgress(counter);
-                  if (counter === 101) {
-                    clearInterval(it);
+                fileHandlerInstance?.splitIntoChunksAndSendData(
+                  (dataObject) => {
+                    console.log("-> sending data...");
+                    socketIO.emit("sendFile", {
+                      ...dataObject,
+                      roomId: uniqueId,
+                    });
+                  },
+                  (currentPercentage: number) => {
+                    updateProgress(currentPercentage);
                   }
-                }, 100);
+                );
               }}
             >
               Send File
             </button>
-            <button onClick={closeDialogBox}>Cancel</button>
+            <button onClick={() => {
+              socketIO.emit("deleteRoom", { roomId: uniqueId });
+              closeDialogBox();
+            }}>Cancel</button>
           </div>
         </div>
       </div>
       {recieveFile ? (
-        <h3>Transmission hasn't started yet!</h3>
+        <h3 id="userCount">Transmission hasn't started yet!</h3>
       ) : (
-        <h3>
+        <h3 id="userCount">
           {userCount === 0
             ? "No user is connected as of yet!"
             : `${userCount} user(s) are connected!`}
