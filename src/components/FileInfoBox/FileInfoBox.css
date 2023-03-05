@@ -1,0 +1,42 @@
+.main-file-info-bx {
+    border: 2px dashed black;
+    border-radius: 4px;
+    margin: 5%;
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 4%;
+    padding-bottom: 4%;
+    height: 100%;
+    align-items: center;
+}
+
+.main-file-info-bx > h2 {
+    font-size: 2rem;
+}
+
+.main-file-info-bx > ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-file-info-bx > ul > li {
+    list-style: none;
+    font-size: 1.5rem;
+    display: inline-block;
+    margin-top: 4%;
+    word-wrap: break-word;
+    margin-right: 5%;
+    width: 100%;
+}
+
+.main-file-info-bx > ul > li > span {
+  font-weight: 200;
+}
+
+.main-file-info-bx > img {
+    width: 30%;
+}

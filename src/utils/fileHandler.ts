@@ -25,9 +25,8 @@ class FileHandlerUtil {
   }
 }
 
-const arrayBufferStore: { [props: string]: any } = {};
 
-class FileHandler extends FileHandlerUtil {
+export class FileSender {
   fileObject: File;
 
   ALLOWED_PAYLOAD_SIZE: number;
@@ -37,22 +36,13 @@ class FileHandler extends FileHandlerUtil {
   uniqueID: number;
 
   constructor(file: any) {
-    super();
     this.fileObject = file;
     this.ALLOWED_PAYLOAD_SIZE = 1024 * 500;
     this.totalPackets = Math.ceil(this.fileObject.size / this.ALLOWED_PAYLOAD_SIZE);
     this.uniqueID = Math.round(Math.random() * 100000);
-    if (this.fileObject.size > (1024 * 1024) * 101) {
-      throw new Error("Only upto 100mb data upload is supported currently!");
+    if (this.fileObject.size > (1024 * 1024 * 1024) * 10) {
+      throw new Error("Only upto 10Gb data upload is supported currently!");
     }
-  }
-
-  private static serializePackets(arrayBufferStore: any[]) {
-    return arrayBufferStore.sort(
-      (packet1: { pId: number }, packet2: { pId: number }) => {
-        return packet1.pId > packet2.pId ? 1 : -1;
-      }
-    );
   }
 
   async splitIntoChunksAndSendData(
@@ -76,7 +66,6 @@ class FileHandler extends FileHandlerUtil {
       pId++
     ) {
       const fileChunk = this.fileObject.slice(start, end);
-      console.log('pId: ', pId);
       const fileChunkArrayBuffer = await fileChunk.arrayBuffer();
       start = end;
       end = Math.min(end + this.ALLOWED_PAYLOAD_SIZE, this.fileObject.size);
@@ -96,7 +85,26 @@ class FileHandler extends FileHandlerUtil {
     }
   }
 
-  static processReceivedChunk(
+}
+
+
+export class FileReciever {
+
+  fileBlob: Blob | null;
+
+  constructor() {
+    this.fileBlob = null;
+  }
+
+  appendToBlob(fileChunk: ArrayBuffer, type: string) {
+    if (!this.fileBlob) {
+      this.fileBlob = new Blob([fileChunk], { type });
+    } else {
+      this.fileBlob = new Blob([this.fileBlob, fileChunk], { type });
+    }
+  }
+
+  processReceivedChunk(
     dataPacket: {
       packetId?: any;
       totalPackets?: any;
@@ -109,45 +117,12 @@ class FileHandler extends FileHandlerUtil {
     callback: (arg0: Blob, arg1: { fileName: any }) => any
   ) {
     // the callback will receive the blob file;
-    const { fileChunkArrayBuffer, isProcessing, uniqueID } = dataPacket;
-    let arrayBufferStoreForUid = (arrayBufferStore[uniqueID] = arrayBufferStore[uniqueID] || []);
-    arrayBufferStoreForUid.push({
-      buffer: fileChunkArrayBuffer,
-      pId: dataPacket.packetId,
-    });
-    if (isProcessing || dataPacket.totalPackets !== dataPacket.packetId) {
+    const { fileChunkArrayBuffer, isProcessing, fileType, fileName } = dataPacket;
+    this.appendToBlob(fileChunkArrayBuffer, fileType);
+    if (isProcessing) {
       console.log("receiving data...");
       return false;
-    } else if (
-      false &&
-      dataPacket.totalPackets != arrayBufferStore.length
-    ) {
-      // FIXME: rework this...
-      throw new Error("total package size doesn't match arraybufferstore size");
     }
-    delete arrayBufferStore[uniqueID];
-    arrayBufferStoreForUid = FileHandler.serializePackets(arrayBufferStoreForUid);
-    const masterArrayBuffer = arrayBufferStoreForUid.reduce(
-      (
-        receivedBufferObject: { buffer: any },
-        currentBufferObject: { buffer: any }
-      ) => {
-        return {
-          buffer: FileHandler.concatArrayBuffers(
-            receivedBufferObject.buffer,
-            currentBufferObject.buffer
-          ),
-        };
-      }
-    );
-    return callback(
-      FileHandler.getBlobObjectFromArrayBuffer(
-        masterArrayBuffer.buffer,
-        dataPacket.fileType
-      ),
-      { fileName: dataPacket.fileName }
-    );
+    return callback((this.fileBlob as Blob), { fileName });
   }
 }
-
-export default FileHandler;

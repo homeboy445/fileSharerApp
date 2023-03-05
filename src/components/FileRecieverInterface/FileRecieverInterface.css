@@ -1,0 +1,119 @@
+#downloadLink {
+  align-items: center;
+  appearance: none;
+  background-image: radial-gradient(100% 100% at 100% 0, #5adaff 0, #5468ff 100%);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: rgba(45, 35, 66, .4) 0 2px 4px,rgba(45, 35, 66, .3) 0 7px 13px -3px,rgba(58, 65, 111, .5) 0 -3px 0 inset;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: "JetBrains Mono",monospace;
+  height: 48px;
+  justify-content: center;
+  line-height: 1;
+  list-style: none;
+  overflow: hidden;
+  padding-left: 16px;
+  padding-right: 16px;
+  position: relative;
+  text-align: left;
+  text-decoration: none;
+  transition: box-shadow .15s,transform .15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  will-change: box-shadow,transform;
+  font-size: 18px;
+  margin-top: 15%;
+}
+
+#downloadLink:focus {
+  box-shadow: #3c4fe0 0 0 0 1.5px inset, rgba(45, 35, 66, .4) 0 2px 4px, rgba(45, 35, 66, .3) 0 7px 13px -3px, #3c4fe0 0 -3px 0 inset;
+}
+
+#downloadLink:hover {
+  box-shadow: rgba(45, 35, 66, .4) 0 4px 8px, rgba(45, 35, 66, .3) 0 7px 13px -3px, #3c4fe0 0 -3px 0 inset;
+  transform: translateY(-2px);
+}
+
+#downloadLink:active {
+  box-shadow: #3c4fe0 0 3px 7px inset;
+  transform: translateY(2px);
+}
+
+#userCount {
+  margin-top: -5%;
+}
+
+.main-file-transmission-section {
+    width: 50%;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@media only screen and (max-width: 600px) {
+  .main-parent {
+    position: absolute;
+    width: 500px;
+    transform: translate(-50%, -38%);
+    top: 65%;
+  }
+  .main-container-1 {
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2%;
+  }
+  .main-file-info-bx {
+    margin: 5%;
+    width: 60%;
+  }
+  .main-file-transmission-section {
+    width: 60%;
+    height: 600px;
+  }
+  .main-file-send-cancel {
+    width: 70%;
+  }
+  .main-file-send-cancel > button {
+    transform: scale(0.8);
+  }
+  #userCount {
+    margin-top: -3%;
+    font-size: 1rem;
+    font-weight: 400;
+    border: 2px solid red;
+    padding: 2%;
+    border-radius: 4px;
+  }
+}
+
+@media only screen and (max-width: 300px) {
+  .main-parent {
+    position: absolute;
+    width: 450px;
+    transform: translate(-50%, -38%);
+  }
+  .main-file-info-bx {
+    width: 50%;
+    margin-top: 22%;
+    padding: 2%;
+  }
+  .main-file-info-bx > h2 {
+    font-size: 1.1rem;
+  }
+  .main-file-info-bx > ul {
+    width: 90%;
+  }
+  .main-file-info-bx > ul > li {
+    font-size: 0.9rem;
+  }
+}

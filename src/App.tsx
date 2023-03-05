@@ -1,37 +1,36 @@
 import React, { useState, useRef, useEffect } from "react";
-import FileSharerDialog from "./components/FileSharerInterface/FileSharerDialog";
 import FileSharerImage from "./assets/sendFiles.jpg";
-import FileHandler from "./utils/fileHandler";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import "./App.css";
+import { io } from "socket.io-client";
+import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
+import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
   const [fileObject, updateFileObject] = useState<File | null>(null);
+  const socketIO = io("http://localhost:3005");
   const fileRef = useRef(null);
 
-  const getParamsObject = () => {
+  const getParamsObject = (): { id: string | null } => {
     const URL = window.location.href;
     const indexOfQueryStart = URL.indexOf("?");
     const queryParams = { id: null };
     if (indexOfQueryStart !== -1) {
-      URL.slice(indexOfQueryStart + 1).split('&').reduce((prev, curr) => {
-        const [name, value] = curr.split('=');
-        (prev as any)[name] = value;
-        return prev;
-      }, queryParams);
+      URL.slice(indexOfQueryStart + 1)
+        .split("&")
+        .reduce((prev, curr) => {
+          const [name, value] = curr.split("=");
+          (prev as any)[name] = value;
+          return prev;
+        }, queryParams);
     }
     return queryParams;
-  }
+  };
 
-  const queryParams = getParamsObject();
+  const queryParams: { id: string | null } = getParamsObject();
 
-  useEffect(() => {
-    console.log("qParams: ", queryParams['id']);
-    if (!!queryParams['id'] && !showFileSharerDialog) {
-      toggleDialog(true);
-    }
-  }, [showFileSharerDialog]);
+  useEffect(() => {}, []);
 
   return (
     <div>
@@ -40,7 +39,7 @@ const App = () => {
         style={{
           opacity: showFileSharerDialog ? "0.4" : "1",
           pointerEvents: showFileSharerDialog ? "none" : "all",
-          backdropFilter: showFileSharerDialog ? 'none' : 'blur(5%)'
+          backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
         }}
       >
         <div className="msg-box-1">
@@ -85,15 +84,23 @@ const App = () => {
           </div>
         </div>
       </div>
-      {(showFileSharerDialog && fileObject !== null) || !!queryParams['id'] ? (
-        <FileSharerDialog
-          fileHandlerInstance={!fileObject ? null : new FileHandler(fileObject)}
+      {fileObject && !queryParams["id"] ? (
+        <FileSenderInterface
+          fileObject={fileRef as unknown as File}
+          uniqueId={uuidv4()}
+          closeDialogBox={function (): void {
+            window.location.href = "/";
+          }}
+          socketIO={socketIO}
+        />
+      ) : null}
+      {queryParams["id"] ? (
+        <FileRecieverInterface
+          socketIO={socketIO}
+          uniqueId={queryParams["id"] || ""}
           closeDialogBox={() => {
             window.location.href = "/";
-            toggleDialog(false);
           }}
-          uniqueId={queryParams['id'] ?? uuidv4()}
-          recieveFile={!!queryParams['id']}
         />
       ) : null}
     </div>
