@@ -31,6 +31,8 @@ const FileSenderInterface = ({
   const [userCount, updateUserCount] = useState(0);
   const [connectedUsers, updateConnectedUsers] = useState<Record<string, number>>({});
   const [currentSelectedUser, updateSelectedUser] = useState('');
+  const [didFileTransferStart, toggleFileTransferState] = useState<boolean>(false);
+  const [tmpPercentageStore, updateTmpPercentageStore] = useState<number>(0);
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -72,21 +74,21 @@ const FileSenderInterface = ({
       updateRoomState(true);
     }
     socketIO.on(uniqueId + ":users", (data: { userCount: number; userId: string; }) => {
-      console.log("user connected! ", data);
       updateUserCount(data.userCount);
       updateUserPercentage(data.userId, 0);
       !currentSelectedUser && updateSelectedUser(data.userId);
     });
     socketIO.on("packet-acknowledged", (data: { percentage: number; userId: string; }) => {
-        updateUserPercentage(data.userId, data.percentage);
+      updateTmpPercentageStore(data.percentage);
+      updateUserPercentage(data.userId, data.percentage);
     });
     return () => {
-        socketIO.off("connect");
-        socketIO.off(uniqueId + ":users");
-        socketIO.off("recieveFile");
-        socketIO.off("packet-acknowledged");
+      socketIO.off("connect");
+      socketIO.off(uniqueId + ":users");
+      socketIO.off("recieveFile");
+      socketIO.off("packet-acknowledged");
     };
-  }, []);
+  }, [currentSelectedUser, connectedUsers]);
 
   return (
     <div className="main-parent">
@@ -94,12 +96,12 @@ const FileSenderInterface = ({
         <FileInfoBox fileInfo={fileInfo} />
         <div className="main-file-transmission-section">
           {
-            /**!notSendingFile */ true ? (
+            !didFileTransferStart ? (
               <div className="main-file-link-handle">
                 <h2>
                   Scan the QRCode on the receiving device to start sharing...
                 </h2>
-                <QRCode value={"testing"} size={256} style={{ margin: "5%" }} />
+                <QRCode value={inputUrlValue} size={256} style={{ margin: "5%" }} />
                 <h2>Or, share this link...</h2>
                 <input
                   type="text"
@@ -142,7 +144,7 @@ const FileSenderInterface = ({
                   strokeWidth={1}
                   styles={buildStyles({
                     pathColor:
-                      "linear-gradient(to right, #1fa2ff, #12d8fa, #a6ffcb)",
+                      "blue",
                     textColor: "blue",
                   })}
                 />
@@ -174,6 +176,7 @@ const FileSenderInterface = ({
               onClick={() => {
                 fileHandlerInstance?.splitIntoChunksAndSendData(
                   (dataObject: any) => {
+                    !didFileTransferStart && toggleFileTransferState(true);
                     console.log("-> sending data...");
                     socketIO.emit("sendFile", {
                       ...dataObject,
@@ -181,9 +184,9 @@ const FileSenderInterface = ({
                     });
                   },
                   (currentPercentage: number) => {
-                    // Do something;
                   }
                 );
+                // toggleFileTransferState(false);
               }}
             >
               Send File

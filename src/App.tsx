@@ -30,8 +30,6 @@ const App = () => {
 
   const queryParams: { id: string | null } = getParamsObject();
 
-  useEffect(() => {}, []);
-
   return (
     <div>
       <div
@@ -86,7 +84,7 @@ const App = () => {
       </div>
       {fileObject && !queryParams["id"] ? (
         <FileSenderInterface
-          fileObject={fileRef as unknown as File}
+          fileObject={fileObject as unknown as File}
           uniqueId={uuidv4()}
           closeDialogBox={function (): void {
             window.location.href = "/";
