@@ -1,0 +1,29 @@
+.hoverable {
+    cursor: pointer;
+}
+
+.hoverable > .tooltip {
+    width: 60%;
+    background: #333;
+    color: white;
+    position: absolute;
+    padding: 1%;
+    width: 50%;
+    word-wrap: break-word;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.hoverable > .tooltip:before {
+    content:'';
+    display:block;
+    width:0;
+    height:0;
+    position:absolute;
+    border: 10px solid transparent;
+    border-bottom: 10px solid #333;
+    top: -.25rem;
+    left: 40%;
+    transform: translateX(-20%) translateY(-70%);
+    transition: 0.2 ease;
+}

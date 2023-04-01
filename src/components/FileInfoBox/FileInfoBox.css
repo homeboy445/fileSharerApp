@@ -1,42 +1,76 @@
 .main-file-info-bx {
-    border: 2px dashed black;
-    border-radius: 4px;
-    margin: 5%;
-    width: 40%;
     display: flex;
     flex-direction: column;
+    border: 2px dashed black;
     justify-content: center;
-    padding-top: 4%;
-    padding-bottom: 4%;
-    height: 100%;
     align-items: center;
+    width: 50%;
+    margin-top: 3%;
+    padding: 2%;
 }
 
 .main-file-info-bx > h2 {
     font-size: 2rem;
 }
 
-.main-file-info-bx > ul {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-.main-file-info-bx > ul > li {
-    list-style: none;
-    font-size: 1.5rem;
-    display: inline-block;
-    margin-top: 4%;
-    word-wrap: break-word;
-    margin-right: 5%;
-    width: 60%;
-}
-
-.main-file-info-bx > ul > li > span {
-  font-weight: 200;
-}
-
 .main-file-info-bx > img {
     width: 30%;
+}
+
+.main-file-info-bx > table {
+    margin-top: 5%;
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.main-file-info-bx > table > tr {
+    font-size: 1.5rem;
+}
+
+.main-file-info-bx > table > tr > td:nth-child(1) {
+    font-weight: 400;
+    white-space: nowrap;
+    width: 25%;
+}
+
+.main-file-info-bx > table > tr > td:nth-child(2) {
+    font-weight: 300;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+
+@media only screen and (max-width: 300px) {
+    .main-file-info-bx {
+        width: 50%;
+        margin-top: 22%;
+        padding: 2%;
+    }
+    .main-file-info-bx > h2 {
+        font-size: 1.1rem;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .main-file-info-bx {
+        margin: 5%;
+        width: 60%;
+    }
+    .main-file-info-bx > table > tr {
+        font-size: 1rem;
+    }
+}
+
+
+@media only screen and (max-width: 800px) {
+    .main-file-info-bx > table > tr {
+        font-size: 1.2rem;
+    }
+}
+
+@media only screen and (max-width: 1000px) {
+    .main-file-info-bx > table > tr > td:nth-child(1) {
+        white-space: inherit;
+    }
 }

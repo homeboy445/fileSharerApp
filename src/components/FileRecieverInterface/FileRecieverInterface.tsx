@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
+import CONSTANTS from "../../consts/index";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { FileReciever } from "../../utils/fileHandler";
@@ -10,12 +11,15 @@ const FileRecieverInterface = ({
   socketIO,
   uniqueId,
   closeDialogBox,
+  globalUtilStore,
 }: {
   socketIO: Record<string, any>;
   uniqueId: string;
   closeDialogBox: () => void;
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
 }) => {
   const fileReceiverInstance = new FileReciever();
+  const localStorageKey = "_fl_sharer_" + uniqueId;
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [objectLink, updateObjectLink] = useState<string | null>(null);
@@ -26,8 +30,8 @@ const FileRecieverInterface = ({
     type: "",
     size: 0,
   });
+  const [uniqueUserId] = useState(globalUtilStore?.getUserId());
 
-  const uniqueUserId = uuidv4();
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -38,17 +42,24 @@ const FileRecieverInterface = ({
   });
 
   const checkIfRoomValid = () => {
+    if (localStorage.getItem(localStorageKey)) {
+      localStorage.removeItem(localStorageKey);
+      globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
+      window.location.href = "/";
+    }
     axios
-      .post("http://localhost:3005/isValidRoom", {
+      .post(CONSTANTS.serverURL + "/isValidRoom", {
         roomId: uniqueId,
       })
       .then(({ data }) => {
         if (!data.status) {
+          globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
           window.location.href = "/";
         }
         updateFileInfo({ ...data.fileInfo });
       })
-      .catch(() => {
+      .catch((e) => {
+        globalUtilStore?.queueMessagesForReloads("Some error occurred!");
         window.location.href = "/";
       });
   };
@@ -64,14 +75,14 @@ const FileRecieverInterface = ({
   };
 
   useEffect(() => {
-    checkIfRoomValid();
+    (fileReceivedPercentage < 100) && checkIfRoomValid();
     if (!joinedRoom) {
       socketIO.emit("join-room", { id: uniqueId, userId: uniqueUserId });
       updateRoomState(true);
     }
     socketIO.on(
       "recieveFile",
-      (data: {
+      async (data: {
         percentageCompleted?: any;
         packetId?: any;
         totalPackets?: any;
@@ -81,47 +92,47 @@ const FileRecieverInterface = ({
         isProcessing?: any;
         uniqueID?: any;
       }) => {
-        console.log("Received the file!", data);
+        console.log("Received the file!", data.packetId);
         fileReceiverInstance.processReceivedChunk(
           data,
           (blobObj: Blob, fileData: { fileName: string }) => {
             updateObjectLink(URL.createObjectURL(blobObj));
             updateCurrentFileName(fileData.fileName);
+            globalUtilStore?.logToUI("File transfer successful!");
+            localStorage.setItem(localStorageKey, "done");
           }
         );
         updateFilePercentage(data.percentageCompleted || 0);
         socketIO.emit("acknowledge", {
           roomId: uniqueId,
           percentage: data.percentageCompleted,
+          packetId: data.packetId,
           userId: uniqueUserId,
         });
       }
     );
     socketIO.on("roomInvalidated", () => {
+      if (fileReceivedPercentage < 100) { // In case the transfer is not complete, then it makes sense to just reload!
+        globalUtilStore?.queueMessagesForReloads("Sender cancelled the file transfer! " + objectLink + " : " + fileReceivedPercentage);
+        window.location.href = "/";
+      }
+    });
+    socketIO.on("roomFull:" + uniqueUserId, () => { // TODO: Implement this that when one user leaves the room, its gets one less!
+      globalUtilStore?.queueMessagesForReloads("Room at capacity!");
       window.location.href = "/";
     });
-    return () => {
+    return () => { // TODO: Confirm as when does it run exactly!
         socketIO.off('recieveFile');
         socketIO.off('roomInvalidated');
     };
-  }, []);
+  }, [objectLink]); // TODO: Study this phenomenon where removing this variable from this dependency array - the above socket callback was getting old values, I think it has something to do with the fact that on each state change I guess the whole function component reference is changed I think;
+
 
   return (
     <div className="main-parent">
       <div className="main-container-1">
           <FileInfoBox fileInfo={fileInfo}/>
-          <div className="main-file-transmission-section">
-            <div
-              style={{
-                width: "80%",
-                height: "500px",
-                padding: "5%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+            <div className="circular-progress-bar-wrapper">
               <CircularProgressbar
                 value={fileReceivedPercentage}
                 text={fileReceivedPercentage >= 100 ? "Done!" : `${fileReceivedPercentage}%`}
@@ -130,6 +141,7 @@ const FileRecieverInterface = ({
                   pathColor:
                     "blue",
                   textColor: "blue",
+                  trailColor: "grey",
                 })}
               />
               {objectLink != null ? (
@@ -138,6 +150,7 @@ const FileRecieverInterface = ({
                   id="downloadLink"
                   download={currentFileName}
                   onClick={() => {
+                    // socketIO.emit("clientSatisfied", { roomId: uniqueId });
                     closeDialogBox();
                   }}
                 >
@@ -145,7 +158,6 @@ const FileRecieverInterface = ({
                 </a>
               ) : null}
             </div>
-          </div>
         </div>
         <h3 id="userCount">Transmission hasn't started yet!</h3>
       </div>

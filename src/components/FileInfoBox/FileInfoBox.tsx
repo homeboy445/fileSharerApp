@@ -1,5 +1,6 @@
 import React from "react";
 import fileIcon from "../../assets/files.png";
+import Hoverable from "../Util/Hoverable";
 import "./FileInfoBox.css";
 
 const FileInfoBox = ({
@@ -11,29 +12,28 @@ const FileInfoBox = ({
     (fileInfo?.name.lastIndexOf(".") + 1),
     fileInfo?.name.length
   );
+  const fileName = fileInfo?.name || "loading...";
+  const fileNameElement = fileName.length >= 45 ? <Hoverable element={<span>{fileName}</span>} text={fileName}/> : fileName;
   return (
     <div className="main-file-info-bx">
       <img src={fileIcon} alt="" />
       <h2>File Info</h2>
-      <ul>
-        <li>
-          File Name: <span>{fileInfo?.name || "loading..."}</span>
-        </li>
-        <li>
-          File type:{" "}
-          <span>
-            {fileInfo?.type ||
-              (fileTypeInterceptedFromFileName || "loading...")}
-          </span>
-        </li>
-        <li>
-          File size:{" "}
-          <span>
-            {((fileInfo?.size ?? 0) / (1024 * 1024)).toFixed(2)}
-            Mb
-          </span>
-        </li>
-      </ul>
+      <table cellPadding={"10%"}>
+        <tr>
+          <td>File Name:</td>
+          <td>{fileNameElement}</td>
+        </tr>
+        <tr>
+          <td>File Type:</td>
+          <td>{fileInfo?.type ||
+              (fileTypeInterceptedFromFileName || "loading...")}</td>
+        </tr>
+        <tr>
+        <td>File Size:</td>
+        <td>{((fileInfo?.size ?? 0) / (1024 * 1024)).toFixed(2)}
+            Mb</td>
+        </tr>
+      </table>
     </div>
   );
 };

@@ -1,0 +1,28 @@
+.message-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    align-items: left;
+    position: fixed;
+    background: white;
+    width: 25%;
+    border-radius: 4px;
+    box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+    /* border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px; */
+    left: 70%;
+    z-index: 2;
+    transition: 0.2s ease;
+}
+
+.message-box > h3 {
+    font-weight: 400;
+    margin-left: 4%;
+}
+
+.msg-duration-bar {
+    height: 5px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+    background: linear-gradient(to right, rgb(112, 112, 243), cyan);
+}

@@ -3,14 +3,26 @@ import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
 import { io } from "socket.io-client";
+import CONSTANTS from "./consts/index";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
+import MessageBox from "./components/PopUps/MessageBox/MessageBox";
+
+const idStore: { [props: string]: any } = {};
+const uniqueUserId = uuidv4()
+const socketIO = io(CONSTANTS.serverURL, {
+  query: {
+    userId: uniqueUserId
+  }
+});
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
   const [fileObject, updateFileObject] = useState<File | null>(null);
-  const socketIO = io("http://localhost:3005");
+  const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
   const fileRef = useRef(null);
+  const queuedMessages: string[] = [];
+  const localStorageQueMsgKey = "_fl_share_queue_msg";
 
   const getParamsObject = (): { id: string | null } => {
     const URL = window.location.href;
@@ -19,9 +31,9 @@ const App = () => {
     if (indexOfQueryStart !== -1) {
       URL.slice(indexOfQueryStart + 1)
         .split("&")
-        .reduce((prev, curr) => {
+        .reduce((prev: Record<string, any>, curr: string) => {
           const [name, value] = curr.split("=");
-          (prev as any)[name] = value;
+          prev[name] = value;
           return prev;
         }, queryParams);
     }
@@ -30,8 +42,48 @@ const App = () => {
 
   const queryParams: { id: string | null } = getParamsObject();
 
+  const logToUI = (message: string) => {
+    const data = { message, id: uuidv4() };
+    idStore[data.id] = true;
+    updateMessage([ ...messagesToBeDisplayed, data ]);
+  }
+
+  const durationCompleteCallback = (id: string) => {
+    delete idStore[id];
+    if (Object.keys(idStore).length === 0) {
+      setTimeout(() => updateMessage([]), 100); // to enable the animation in case of MessageBox component;
+    }
+  };
+
+  const queueMessagesForReloads = (message: string) => {
+    queuedMessages.push(message);
+    localStorage.setItem(localStorageQueMsgKey, JSON.stringify(queuedMessages));
+  }
+
+  const loadQueueMessagesAndLogThemtoUI = () => {
+    const storedMsgs = localStorage.getItem(localStorageQueMsgKey);
+    if (storedMsgs) {
+      JSON.parse(storedMsgs).forEach((message: string) => logToUI(message));
+      localStorage.removeItem(localStorageQueMsgKey);
+    }
+  }
+
+  useEffect(() => {
+    loadQueueMessagesAndLogThemtoUI();
+  }, []);
+
   return (
     <div>
+      {messagesToBeDisplayed.map((messageObj, index) => {
+        return (
+          <MessageBox
+            key={uuidv4()}
+            messageObj={messageObj}
+            durationCompleteCallback={durationCompleteCallback}
+            messageBoxIndex={index}
+          />
+        );
+      })}
       <div
         className="container"
         style={{
@@ -41,7 +93,7 @@ const App = () => {
         }}
       >
         <div className="msg-box-1">
-          <h1>Welcome, to FileSharer.io!!!</h1>
+          <h1>Welcome to FileSharer.io!!!</h1>
           <h2>
             Share your files with your peers in an instant without any hassle.
           </h2>
@@ -90,6 +142,11 @@ const App = () => {
             window.location.href = "/";
           }}
           socketIO={socketIO}
+          globalUtilStore={{
+            logToUI,
+            queueMessagesForReloads,
+            getUserId: () => uniqueUserId
+          }}
         />
       ) : null}
       {queryParams["id"] ? (
@@ -98,6 +155,11 @@ const App = () => {
           uniqueId={queryParams["id"] || ""}
           closeDialogBox={() => {
             window.location.href = "/";
+          }}
+          globalUtilStore={{
+            logToUI,
+            queueMessagesForReloads,
+            getUserId: () => uniqueUserId
           }}
         />
       ) : null}

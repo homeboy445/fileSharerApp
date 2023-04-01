@@ -10,14 +10,16 @@ const FileSenderInterface = ({
   uniqueId,
   closeDialogBox,
   socketIO,
+  globalUtilStore
 }: {
   fileObject: File;
   uniqueId: string;
   closeDialogBox: () => void;
   socketIO: Record<string, any>;
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
 }) => {
 
-  const fileHandlerInstance = new FileSender(fileObject);
+  const [fileHandlerInstance] = useState(new FileSender(fileObject));
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [inputUrlValue, updateInputUrlValue] = useState(
@@ -56,9 +58,29 @@ const FileSenderInterface = ({
     const users = connectedUsers;
     users[userId] = percentage;
     updateConnectedUsers(connectedUsers);
+    reloadIfFileSendingDone();
+  }
+
+  const reloadIfFileSendingDone = () => {
+    let count = 0;
+    const connectedUsersList = Object.keys(connectedUsers);
+    connectedUsersList.forEach((key) => {
+      if (connectedUsers[key] >= 100) count++;
+    });
+    if (count === connectedUsersList.length) {
+      setTimeout(() => {
+        globalUtilStore?.queueMessagesForReloads("File transfer successful!");
+        socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
+        window.location.href = "/";
+      }, 2000);
+    }
   }
 
   useEffect(() => {
+    if (fileHandlerInstance.getFileSize() >= (1024 * 1024) * 200) {
+      globalUtilStore?.queueMessagesForReloads("Only 200Mb of data transfer is permitted currently!");
+      window.location.href = "/";
+    }
     socketIO.on("connect", () => {
       console.log("connected!");
     });
@@ -127,25 +149,15 @@ const FileSenderInterface = ({
                 />
               </div>
             ) : (
-              <div
-                style={{
-                  width: "80%",
-                  height: "500px",
-                  padding: "5%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
+              <div className="circular-progress-bar-wrapper">
                 <CircularProgressbar
                   value={connectedUsers[currentSelectedUser]}
                   text={connectedUsers[currentSelectedUser] >= 100 ? "Done!" : `${connectedUsers[currentSelectedUser]}%`}
                   strokeWidth={1}
                   styles={buildStyles({
-                    pathColor:
-                      "blue",
+                    pathColor: "blue",
                     textColor: "blue",
+                    trailColor: "grey"
                   })}
                 />
                 <div
@@ -172,21 +184,22 @@ const FileSenderInterface = ({
           }
           <div className="main-file-send-cancel">
             <button
-              disabled={userCount === 0}
+              disabled={userCount === 0 || didFileTransferStart}
               onClick={() => {
                 fileHandlerInstance?.splitIntoChunksAndSendData(
                   (dataObject: any) => {
                     !didFileTransferStart && toggleFileTransferState(true);
-                    console.log("-> sending data...");
+                    console.log("-> sending data... ", dataObject.percentageCompleted);
                     socketIO.emit("sendFile", {
                       ...dataObject,
                       roomId: uniqueId,
                     });
                   },
                   (currentPercentage: number) => {
+                  }, () => {
+                    // this will be called when all the data packets have been dispatched!
                   }
-                );
-                // toggleFileTransferState(false);
+                  );
               }}
             >
               Send File

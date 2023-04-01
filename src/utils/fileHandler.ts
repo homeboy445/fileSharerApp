@@ -37,12 +37,16 @@ export class FileSender {
 
   constructor(file: any) {
     this.fileObject = file;
-    this.ALLOWED_PAYLOAD_SIZE = 1024 * 500;
+    this.ALLOWED_PAYLOAD_SIZE = 1024 * 100;
     this.totalPackets = Math.ceil(this.fileObject.size / this.ALLOWED_PAYLOAD_SIZE);
     this.uniqueID = Math.round(Math.random() * 100000);
-    if (this.fileObject.size > (1024 * 1024 * 1024) * 10) {
-      throw new Error("Only upto 10Gb data upload is supported currently!");
-    }
+    // if (this.fileObject.size > (1024 * 1024) * 200) {
+    //   // throw new Error("Only upto 200Mb data upload is supported currently!");
+    // }
+  }
+
+  getFileSize() {
+    return this.fileObject.size;
   }
 
   async splitIntoChunksAndSendData(
@@ -55,7 +59,8 @@ export class FileSender {
       fileType: any;
       uniqueID: any;
     }) => void,
-    updatePercentageCallback: (perc: number) => void // This callback should run on percentage update;
+    updatePercentageCallback: (perc: number) => void, // This callback should run on percentage update;
+    dataTransmissionCompleteCallback: () => void
   ) {
     // TODO: check out writable streams for this...
     for (
@@ -77,12 +82,13 @@ export class FileSender {
         chunkSize: fileChunk.size,
         fileName: this.fileObject.name,
         fileType: this.fileObject.type,
-        uniqueID: this.uniqueID,
+        uniqueID: this.uniqueID, // FIXME: This might not be necessary!
         percentageCompleted: parseInt(((end / this.fileObject.size) * 100).toFixed(1))
       };
       senderCallback(dataPacket);
       updatePercentageCallback(dataPacket.percentageCompleted);
     }
+    dataTransmissionCompleteCallback();
   }
 
 }
