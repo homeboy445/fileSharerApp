@@ -82,9 +82,11 @@
   }
 }
 
-@media only screen and (max-width: 300px) {
+@media only screen and (max-width: 400px) {
   .main-parent {
     position: absolute;
     width: 450px;
+    min-height: 100vh;
+    top: 55%;
   }
 }

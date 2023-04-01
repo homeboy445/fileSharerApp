@@ -21,10 +21,10 @@ const FileSenderInterface = ({
 
   const [fileHandlerInstance] = useState(new FileSender(fileObject));
 
+  const shareableLink = `${window.location.href}?id=${uniqueId}`;
+
   const [joinedRoom, updateRoomState] = useState(false);
-  const [inputUrlValue, updateInputUrlValue] = useState(
-    `http://localhost:3000?id=${uniqueId}`
-  );
+  const [inputUrlValue, updateInputUrlValue] = useState(shareableLink);
   const [fileInfo, updateFileInfo] = useState({
     name: fileHandlerInstance?.fileObject?.name,
     type: fileHandlerInstance?.fileObject?.type,
@@ -123,7 +123,7 @@ const FileSenderInterface = ({
                 <h2>
                   Scan the QRCode on the receiving device to start sharing...
                 </h2>
-                <QRCode value={inputUrlValue} size={256} style={{ margin: "5%" }} />
+                <QRCode value={shareableLink} size={256} style={{ margin: "5%" }} />
                 <h2>Or, share this link...</h2>
                 <input
                   type="text"

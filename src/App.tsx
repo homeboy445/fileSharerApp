@@ -99,7 +99,7 @@ const App = () => {
           </h2>
           <ul>
             <li>✅Share any file type</li>
-            <li>✅Send upto 100Mb of data</li>
+            <li>✅Send upto 200Mb of data</li>
             <li>✅Peer to Peer transmission</li>
             <li>✅Secure Data Propagation</li>
           </ul>
