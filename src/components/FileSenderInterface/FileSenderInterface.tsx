@@ -4,18 +4,17 @@ import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import "./FileSenderInterface.css";
 import { FileSender } from "../../utils/fileHandler";
+import socketIO from "../../connections/socketIO";
 
 const FileSenderInterface = ({
   fileObject,
   uniqueId,
   closeDialogBox,
-  socketIO,
   globalUtilStore
 }: {
   fileObject: File;
   uniqueId: string;
   closeDialogBox: () => void;
-  socketIO: Record<string, any>;
   globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
 }) => {
 

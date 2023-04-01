@@ -2,18 +2,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import CONSTANTS from "../../consts/index";
-import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { FileReciever } from "../../utils/fileHandler";
 import "./FileRecieverInterface.css";
+import socketIO from "../../connections/socketIO";
 
 const FileRecieverInterface = ({
-  socketIO,
   uniqueId,
   closeDialogBox,
   globalUtilStore,
 }: {
-  socketIO: Record<string, any>;
   uniqueId: string;
   closeDialogBox: () => void;
   globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
@@ -113,7 +111,7 @@ const FileRecieverInterface = ({
     );
     socketIO.on("roomInvalidated", () => {
       if (fileReceivedPercentage < 100) { // In case the transfer is not complete, then it makes sense to just reload!
-        globalUtilStore?.queueMessagesForReloads("Sender cancelled the file transfer! " + objectLink + " : " + fileReceivedPercentage);
+        globalUtilStore?.queueMessagesForReloads("Sender aborted the file transfer!");
         window.location.href = "/";
       }
     });

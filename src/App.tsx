@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
-import { io } from "socket.io-client";
 import CONSTANTS from "./consts/index";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
@@ -10,11 +9,6 @@ import MessageBox from "./components/PopUps/MessageBox/MessageBox";
 
 const idStore: { [props: string]: any } = {};
 const uniqueUserId = uuidv4()
-const socketIO = io(CONSTANTS.serverURL, {
-  query: {
-    userId: uniqueUserId
-  }
-});
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
@@ -141,7 +135,6 @@ const App = () => {
           closeDialogBox={function (): void {
             window.location.href = "/";
           }}
-          socketIO={socketIO}
           globalUtilStore={{
             logToUI,
             queueMessagesForReloads,
@@ -151,7 +144,6 @@ const App = () => {
       ) : null}
       {queryParams["id"] ? (
         <FileRecieverInterface
-          socketIO={socketIO}
           uniqueId={queryParams["id"] || ""}
           closeDialogBox={() => {
             window.location.href = "/";
