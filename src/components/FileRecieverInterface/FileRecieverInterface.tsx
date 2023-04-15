@@ -5,21 +5,22 @@ import CONSTANTS from "../../consts/index";
 import axios from "axios";
 import { FileReciever } from "../../utils/fileHandler";
 import "./FileRecieverInterface.css";
-import socketIO from "../../connections/socketIO";
+import socketInstance from "../../connections/socketIO";
 
 const FileRecieverInterface = ({
   uniqueId,
   closeDialogBox,
-  globalUtilStore,
+  globalUtilStore
 }: {
   uniqueId: string;
   closeDialogBox: () => void;
-  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string },
 }) => {
   const fileReceiverInstance = new FileReciever();
   const localStorageKey = "_fl_sharer_" + uniqueId;
 
   const [joinedRoom, updateRoomState] = useState(false);
+  const [socketIO] = useState(socketInstance.getSocketInstance());
   const [objectLink, updateObjectLink] = useState<string | null>(null);
   const [currentFileName, updateCurrentFileName] = useState<string>("unknown");
   const [fileReceivedPercentage, updateFilePercentage] = useState(0);

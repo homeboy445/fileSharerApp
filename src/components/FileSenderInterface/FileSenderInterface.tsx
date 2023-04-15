@@ -4,18 +4,18 @@ import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import "./FileSenderInterface.css";
 import { FileSender } from "../../utils/fileHandler";
-import socketIO from "../../connections/socketIO";
+import socketInstance from "../../connections/socketIO";
 
 const FileSenderInterface = ({
   fileObject,
   uniqueId,
   closeDialogBox,
-  globalUtilStore
+  globalUtilStore,
 }: {
   fileObject: File;
   uniqueId: string;
   closeDialogBox: () => void;
-  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string }
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string },
 }) => {
 
   const [fileHandlerInstance] = useState(new FileSender(fileObject));
@@ -29,6 +29,7 @@ const FileSenderInterface = ({
     type: fileHandlerInstance?.fileObject?.type,
     size: fileHandlerInstance?.fileObject?.size,
   });
+  const [socketIO] = useState(socketInstance.getSocketInstance());
   const [userCount, updateUserCount] = useState(0);
   const [connectedUsers, updateConnectedUsers] = useState<Record<string, number>>({});
   const [currentSelectedUser, updateSelectedUser] = useState('');

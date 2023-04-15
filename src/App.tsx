@@ -2,21 +2,24 @@ import React, { useState, useRef, useEffect } from "react";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
-import CONSTANTS from "./consts/index";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
+import socketIO from "./connections/socketIO";
+import { fetchIpAddress } from "./utils/util";
+import cookieManager from "./utils/cookieManager";
+import CONSTANTS from "./consts/index";
 
 const idStore: { [props: string]: any } = {};
-const uniqueUserId = uuidv4()
+const uniqueUserId = uuidv4();
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
   const [fileObject, updateFileObject] = useState<File | null>(null);
   const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
+  const [ipAddress, updateIpAddress] = useState<string | null>(cookieManager.get(CONSTANTS.ipAddressCookie));
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
-  const localStorageQueMsgKey = "_fl_share_queue_msg";
 
   const getParamsObject = (): { id: string | null } => {
     const URL = window.location.href;
@@ -51,22 +54,34 @@ const App = () => {
 
   const queueMessagesForReloads = (message: string) => {
     queuedMessages.push(message);
-    localStorage.setItem(localStorageQueMsgKey, JSON.stringify(queuedMessages));
+    localStorage.setItem(CONSTANTS.localStorageQueueMessageKey, JSON.stringify(queuedMessages));
   }
 
   const loadQueueMessagesAndLogThemtoUI = () => {
-    const storedMsgs = localStorage.getItem(localStorageQueMsgKey);
+    const storedMsgs = localStorage.getItem(CONSTANTS.localStorageQueueMessageKey);
     if (storedMsgs) {
       JSON.parse(storedMsgs).forEach((message: string) => logToUI(message));
-      localStorage.removeItem(localStorageQueMsgKey);
+      localStorage.removeItem(CONSTANTS.localStorageQueueMessageKey);
     }
   }
 
+  if (ipAddress) {
+    socketIO.initialize({ ip: ipAddress });
+  }
+
   useEffect(() => {
+    if (ipAddress === null) {
+      fetchIpAddress()
+      .then((ip) => {
+        updateIpAddress(ip);
+        socketIO.initialize({ ip });
+        cookieManager.set(CONSTANTS.ipAddressCookie, ip);
+      });
+    }
     loadQueueMessagesAndLogThemtoUI();
   }, []);
 
-  return (
+  return ipAddress === null ? <h1>Loading...</h1> : (
     <div>
       {messagesToBeDisplayed.map((messageObj, index) => {
         return (
@@ -138,7 +153,7 @@ const App = () => {
           globalUtilStore={{
             logToUI,
             queueMessagesForReloads,
-            getUserId: () => uniqueUserId
+            getUserId: () => uniqueUserId,
           }}
         />
       ) : null}
