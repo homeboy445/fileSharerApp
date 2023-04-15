@@ -8,16 +8,16 @@ import "./FileRecieverInterface.css";
 import socketInstance from "../../connections/socketIO";
 
 const FileRecieverInterface = ({
-  uniqueId,
+  roomId,
   closeDialogBox,
   globalUtilStore
 }: {
-  uniqueId: string;
+  roomId: string;
   closeDialogBox: () => void;
   globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string },
 }) => {
   const fileReceiverInstance = new FileReciever();
-  const localStorageKey = "_fl_sharer_" + uniqueId;
+  const localStorageKey = "_fl_sharer_" + roomId;
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [socketIO] = useState(socketInstance.getSocketInstance());
@@ -48,7 +48,7 @@ const FileRecieverInterface = ({
     }
     axios
       .post(CONSTANTS.serverURL + "/isValidRoom", {
-        roomId: uniqueId,
+        roomId: roomId,
       })
       .then(({ data }) => {
         if (!data.status) {
@@ -57,7 +57,7 @@ const FileRecieverInterface = ({
         }
         updateFileInfo({ ...data.fileInfo });
       })
-      .catch((e) => {
+      .catch(() => {
         globalUtilStore?.queueMessagesForReloads("Some error occurred!");
         window.location.href = "/";
       });
@@ -76,7 +76,7 @@ const FileRecieverInterface = ({
   useEffect(() => {
     (fileReceivedPercentage < 100) && checkIfRoomValid();
     if (!joinedRoom) {
-      socketIO.emit("join-room", { id: uniqueId, userId: uniqueUserId });
+      socketIO.emit("join-room", { id: roomId, userId: uniqueUserId });
       updateRoomState(true);
     }
     socketIO.on(
@@ -89,7 +89,7 @@ const FileRecieverInterface = ({
         fileName?: any;
         fileChunkArrayBuffer?: any;
         isProcessing?: any;
-        uniqueID?: any;
+        roomId?: any;
       }) => {
         console.log("Received the file!", data.packetId);
         fileReceiverInstance.processReceivedChunk(
@@ -103,7 +103,7 @@ const FileRecieverInterface = ({
         );
         updateFilePercentage(data.percentageCompleted || 0);
         socketIO.emit("acknowledge", {
-          roomId: uniqueId,
+          roomId: roomId,
           percentage: data.percentageCompleted,
           packetId: data.packetId,
           userId: uniqueUserId,
@@ -149,7 +149,7 @@ const FileRecieverInterface = ({
                   id="downloadLink"
                   download={currentFileName}
                   onClick={() => {
-                    // socketIO.emit("clientSatisfied", { roomId: uniqueId });
+                    // socketIO.emit("clientSatisfied", { roomId: roomId });
                     closeDialogBox();
                   }}
                 >

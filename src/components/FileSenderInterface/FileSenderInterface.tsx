@@ -5,6 +5,8 @@ import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import "./FileSenderInterface.css";
 import { FileSender } from "../../utils/fileHandler";
 import socketInstance from "../../connections/socketIO";
+import cookieManager from "../../utils/cookieManager";
+import CONSTANTS from "../../consts";
 
 const FileSenderInterface = ({
   fileObject,
@@ -72,6 +74,7 @@ const FileSenderInterface = ({
         globalUtilStore?.queueMessagesForReloads("File transfer successful!");
         socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
         window.location.href = "/";
+        cookieManager.delete(CONSTANTS.ipAddressCookie);
       }, 2000);
     }
   }

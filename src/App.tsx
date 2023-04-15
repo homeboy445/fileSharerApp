@@ -6,18 +6,26 @@ import FileSenderInterface from "./components/FileSenderInterface/FileSenderInte
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
 import socketIO from "./connections/socketIO";
-import { fetchIpAddress } from "./utils/util";
 import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 
 const idStore: { [props: string]: any } = {};
-const uniqueUserId = uuidv4();
+let uniqueUserId = uuidv4();
+
+(function(){
+  const cachedUUID = cookieManager.get(CONSTANTS.ipAddressCookie);
+  if (cachedUUID) {
+    uniqueUserId = cachedUUID;
+  } else {
+    cookieManager.set(CONSTANTS.ipAddressCookie, uniqueUserId);
+  }
+  socketIO.initialize({ uuid: uniqueUserId });
+})();
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
   const [fileObject, updateFileObject] = useState<File | null>(null);
   const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
-  const [ipAddress, updateIpAddress] = useState<string | null>(cookieManager.get(CONSTANTS.ipAddressCookie));
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
 
@@ -65,23 +73,11 @@ const App = () => {
     }
   }
 
-  if (ipAddress) {
-    socketIO.initialize({ ip: ipAddress });
-  }
-
   useEffect(() => {
-    if (ipAddress === null) {
-      fetchIpAddress()
-      .then((ip) => {
-        updateIpAddress(ip);
-        socketIO.initialize({ ip });
-        cookieManager.set(CONSTANTS.ipAddressCookie, ip);
-      });
-    }
     loadQueueMessagesAndLogThemtoUI();
   }, []);
 
-  return ipAddress === null ? <h1>Loading...</h1> : (
+  return (
     <div>
       {messagesToBeDisplayed.map((messageObj, index) => {
         return (
@@ -146,7 +142,7 @@ const App = () => {
       {fileObject && !queryParams["id"] ? (
         <FileSenderInterface
           fileObject={fileObject as unknown as File}
-          uniqueId={uuidv4()}
+          uniqueId={uniqueUserId}
           closeDialogBox={function (): void {
             window.location.href = "/";
           }}
@@ -159,7 +155,7 @@ const App = () => {
       ) : null}
       {queryParams["id"] ? (
         <FileRecieverInterface
-          uniqueId={queryParams["id"] || ""}
+          roomId={queryParams["id"] || ""}
           closeDialogBox={() => {
             window.location.href = "/";
           }}

@@ -8,22 +8,10 @@ import { DefaultEventsMap } from "@socket.io/component-emitter";
  */
 class socket {
     private socketIO: Socket<DefaultEventsMap, DefaultEventsMap> | null;
-    initializedWithParams: { ip: string; };
     constructor() {
         this.socketIO = null;
-        this.initializedWithParams = { ip: '' };
     }
-    initialize(params: { ip: string }) {
-        let areAllSameParams = true;
-        for (const param in this.initializedWithParams) {
-            if (param != (params as any)[param]) {
-                areAllSameParams = false;
-            }
-        }
-        if (areAllSameParams) {
-            return;
-        }
-        this.initializedWithParams.ip = params.ip;
+    initialize(params: { uuid: string }) {
         this.socketIO = io(CONSTANTS.serverURL, {
             query: params
         });
