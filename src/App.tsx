@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
+import FileCloudIcon from "./assets/filecloud.png";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
@@ -13,11 +14,11 @@ const idStore: { [props: string]: any } = {};
 let uniqueUserId = uuidv4();
 
 (function(){
-  const cachedUUID = cookieManager.get(CONSTANTS.ipAddressCookie);
+  const cachedUUID = cookieManager.get(CONSTANTS.uniqueIdCookie);
   if (cachedUUID) {
     uniqueUserId = cachedUUID;
   } else {
-    cookieManager.set(CONSTANTS.ipAddressCookie, uniqueUserId);
+    cookieManager.set(CONSTANTS.uniqueIdCookie, uniqueUserId);
   }
   socketIO.initialize({ uuid: uniqueUserId });
 })();
@@ -97,8 +98,12 @@ const App = () => {
           backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
         }}
       >
+        <div className="topTile">
+          <img src={FileCloudIcon} />
+          <h3>FileSharer.io</h3> 
+        </div>
         <div className="msg-box-1">
-          <h1>Welcome to FileSharer.io!!!</h1>
+          <h1>Welcome to FileSharer.io!</h1>
           <h2>
             Share your files with your peers in an instant without any hassle.
           </h2>

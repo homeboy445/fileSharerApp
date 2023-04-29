@@ -2,7 +2,7 @@
 class CONSTANTS {
     readonly serverURL = "https://filesharer-io.onrender.com";
     readonly devServerURL = "http://localhost:3005";
-    readonly ipAddressCookie = "_fl_sharer_ip_";
+    readonly uniqueIdCookie = "_fl_sharer_id_";
     readonly localStorageQueueMessageKey = "_fl_share_queue_msg"
 }
 

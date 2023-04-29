@@ -73,8 +73,8 @@ const FileSenderInterface = ({
       setTimeout(() => {
         globalUtilStore?.queueMessagesForReloads("File transfer successful!");
         socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
+        cookieManager.delete(CONSTANTS.uniqueIdCookie);
         window.location.href = "/";
-        cookieManager.delete(CONSTANTS.ipAddressCookie);
       }, 2000);
     }
   }

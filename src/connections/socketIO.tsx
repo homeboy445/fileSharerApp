@@ -12,7 +12,7 @@ class socket {
         this.socketIO = null;
     }
     initialize(params: { uuid: string }) {
-        this.socketIO = io(CONSTANTS.serverURL, {
+        this.socketIO = io(process.env.REACT_APP_MODE === "dev" ? CONSTANTS.devServerURL : CONSTANTS.serverURL, {
             query: params
         });
     }

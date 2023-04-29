@@ -47,7 +47,7 @@ const FileRecieverInterface = ({
       window.location.href = "/";
     }
     axios
-      .post(CONSTANTS.serverURL + "/isValidRoom", {
+      .post((process.env.REACT_APP_MODE === "dev" ? CONSTANTS.devServerURL : CONSTANTS.serverURL) + "/isValidRoom", {
         roomId: roomId,
       })
       .then(({ data }) => {
@@ -82,14 +82,15 @@ const FileRecieverInterface = ({
     socketIO.on(
       "recieveFile",
       async (data: {
-        percentageCompleted?: any;
-        packetId?: any;
-        totalPackets?: any;
-        fileType?: any;
-        fileName?: any;
-        fileChunkArrayBuffer?: any;
-        isProcessing?: any;
-        roomId?: any;
+        senderId: string;
+        percentageCompleted?: number;
+        packetId?: number;
+        totalPackets?: number;
+        fileType?: string;
+        fileName?: string;
+        fileChunkArrayBuffer?: ArrayBuffer;
+        isProcessing?: boolean;
+        roomId?: string;
       }) => {
         console.log("Received the file!", data.packetId);
         fileReceiverInstance.processReceivedChunk(
@@ -107,6 +108,7 @@ const FileRecieverInterface = ({
           percentage: data.percentageCompleted,
           packetId: data.packetId,
           userId: uniqueUserId,
+          senderId: data.senderId
         });
       }
     );
