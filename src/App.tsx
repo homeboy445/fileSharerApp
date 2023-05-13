@@ -11,22 +11,24 @@ import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 
 const idStore: { [props: string]: any } = {};
-let uniqueUserId = uuidv4();
-
-(function(){
-  const cachedUUID = cookieManager.get(CONSTANTS.uniqueIdCookie);
+const uniqueUserId = (function(){
+  let uuid = uuidv4();
+  // The UUID should be loaded from cache only in the case of receiving a file!
+  const cachedUUID = window.location.href.includes("?id=") ? cookieManager.get(CONSTANTS.uniqueIdCookie) : uuid;
   if (cachedUUID) {
-    uniqueUserId = cachedUUID;
+    uuid = cachedUUID;
   } else {
-    cookieManager.set(CONSTANTS.uniqueIdCookie, uniqueUserId);
+    cookieManager.set(CONSTANTS.uniqueIdCookie, uuid);
   }
-  socketIO.initialize({ uuid: uniqueUserId });
+  socketIO.initialize({ uuid });
+  return uuid;
 })();
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
   const [fileObject, updateFileObject] = useState<File | null>(null);
   const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
+  const [socketIoInstance] = useState(socketIO.getSocketInstance());
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
 
@@ -75,7 +77,14 @@ const App = () => {
   }
 
   useEffect(() => {
+    socketIoInstance.on("error", (data) => {
+      queueMessagesForReloads(data.message || "Some error occurred!");
+      window.location.href = "/";
+    });
     loadQueueMessagesAndLogThemtoUI();
+    return () => {
+      socketIoInstance.off("error");
+    };
   }, []);
 
   return (

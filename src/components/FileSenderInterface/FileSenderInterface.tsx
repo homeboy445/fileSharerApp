@@ -22,11 +22,11 @@ const FileSenderInterface = ({
 
   const [fileHandlerInstance] = useState(new FileSender(fileObject));
 
-  const shareableLink = `${window.location.href}?id=${uniqueId}`;
+  const shareableLink = `${process.env.REACT_APP_MODE === "dev" ? CONSTANTS.frontEndURLDev : CONSTANTS.frontEndURLProd}?id=${uniqueId}`;
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [inputUrlValue, updateInputUrlValue] = useState(shareableLink);
-  const [fileInfo, updateFileInfo] = useState({
+  const [fileInfo] = useState({
     name: fileHandlerInstance?.fileObject?.name,
     type: fileHandlerInstance?.fileObject?.type,
     size: fileHandlerInstance?.fileObject?.size,
@@ -56,10 +56,14 @@ const FileSenderInterface = ({
     window.removeEventListener('beforeunload', unloadFnRef.current);
   }
 
-  const updateUserPercentage = (userId: string, percentage: number) => {
+  const updateUserPercentage = (userId: string, percentage: number, deleteUser = false) => {
     const users = connectedUsers;
-    users[userId] = percentage;
-    updateConnectedUsers(connectedUsers);
+    if (deleteUser) {
+      delete users[userId];
+    } else {
+      users[userId] = percentage;
+    }
+    updateConnectedUsers(users);
     reloadIfFileSendingDone();
   }
 
@@ -98,13 +102,14 @@ const FileSenderInterface = ({
       });
       updateRoomState(true);
     }
-    socketIO.on(uniqueId + ":users", (data: { userCount: number; userId: string; }) => {
+    socketIO.on(uniqueId + ":users", (data: { userCount: number; userId: string; userLeft?: boolean }) => {
+      console.log("~~ user count got updated: ", data);
       updateUserCount(data.userCount);
-      updateUserPercentage(data.userId, 0);
+      updateUserPercentage(data.userId, 0, data.userLeft);
       !currentSelectedUser && updateSelectedUser(data.userId);
     });
     socketIO.on("packet-acknowledged", (data: { percentage: number; userId: string; }) => {
-      updateTmpPercentageStore(data.percentage);
+      updateTmpPercentageStore(data.percentage); // TODO: Remove this!
       updateUserPercentage(data.userId, data.percentage);
     });
     return () => {
@@ -192,7 +197,6 @@ const FileSenderInterface = ({
                 fileHandlerInstance?.splitIntoChunksAndSendData(
                   (dataObject: any) => {
                     !didFileTransferStart && toggleFileTransferState(true);
-                    console.log("-> sending data... ", dataObject.percentageCompleted);
                     socketIO.emit("sendFile", {
                       ...dataObject,
                       roomId: uniqueId,
