@@ -84,8 +84,8 @@ const FileSenderInterface = ({
   }
 
   useEffect(() => {
-    if (fileHandlerInstance.getFileSize() >= (1024 * 1024) * 200) {
-      globalUtilStore?.queueMessagesForReloads("Only 200Mb of data transfer is permitted currently!");
+    if (fileHandlerInstance.getFileSize() >= (1024 * 1024) * 1624) {
+      globalUtilStore?.queueMessagesForReloads("Only 1.5Gb of data transfer is permitted currently!");
       window.location.href = "/";
     }
     socketIO.on("connect", () => {
