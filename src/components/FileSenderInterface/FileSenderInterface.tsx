@@ -195,8 +195,9 @@ const FileSenderInterface = ({
               disabled={userCount === 0 || didFileTransferStart}
               onClick={() => {
                 fileHandlerInstance?.splitIntoChunksAndSendData(
-                  (dataObject: any) => {
+                  async (dataObject: any) => {
                     !didFileTransferStart && toggleFileTransferState(true);
+                    await new Promise((resolve) => setTimeout(resolve, 1000)); // Doing this to prevent flooding the server!
                     socketIO.emit("sendFile", {
                       ...dataObject,
                       roomId: uniqueId,

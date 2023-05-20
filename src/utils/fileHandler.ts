@@ -83,18 +83,10 @@ export class FileSender {
         fileName: this.fileObject.name,
         fileType: this.fileObject.type,
         uniqueID: this.uniqueID, // FIXME: This might not be necessary!
-        percentageCompleted: parseInt(((end / this.fileObject.size) * 100).toFixed(1))
+        percentageCompleted: Math.floor((end / this.fileObject.size) * 100)
       };
-      if (this.getFileSize() > (1024 * 1024) * 200) {
-        setTimeout(() => {
-          console.log("delayed packet transmission!");
-          senderCallback(dataPacket);
-          updatePercentageCallback(dataPacket.percentageCompleted);
-        }, 1000); // Delaying the transmission to 1s per packet for testing purposes!
-      } else {
-        senderCallback(dataPacket);
-        updatePercentageCallback(dataPacket.percentageCompleted);
-      }
+      senderCallback(dataPacket);
+      updatePercentageCallback(dataPacket.percentageCompleted);
     }
     dataTransmissionCompleteCallback();
   }
@@ -134,7 +126,6 @@ export class FileReciever {
     const { fileChunkArrayBuffer, isProcessing, fileType, fileName } = dataPacket;
     this.appendToBlob(fileChunkArrayBuffer, fileType);
     if (isProcessing) {
-      console.log("receiving data...");
       return false;
     }
     return callback((this.fileBlob as Blob), { fileName });
