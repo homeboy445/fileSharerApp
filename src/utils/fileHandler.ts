@@ -85,8 +85,16 @@ export class FileSender {
         uniqueID: this.uniqueID, // FIXME: This might not be necessary!
         percentageCompleted: parseInt(((end / this.fileObject.size) * 100).toFixed(1))
       };
-      senderCallback(dataPacket);
-      updatePercentageCallback(dataPacket.percentageCompleted);
+      if (this.getFileSize() > (1024 * 1024) * 200) {
+        setTimeout(() => {
+          console.log("delayed packet transmission!");
+          senderCallback(dataPacket);
+          updatePercentageCallback(dataPacket.percentageCompleted);
+        }, 1000); // Delaying the transmission to 1s per packet for testing purposes!
+      } else {
+        senderCallback(dataPacket);
+        updatePercentageCallback(dataPacket.percentageCompleted);
+      }
     }
     dataTransmissionCompleteCallback();
   }

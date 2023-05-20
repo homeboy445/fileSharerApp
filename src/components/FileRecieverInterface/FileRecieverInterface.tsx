@@ -102,7 +102,7 @@ const FileRecieverInterface = ({
           }
         );
         updateFilePercentage(data.percentageCompleted || 0);
-        if (((data.percentageCompleted || 0) % 5) === 0) {
+        // if (((data.percentageCompleted || 0) % 5) === 0) {}
           socketIO.emit("acknowledge", { // For the time being only sending the acknowledgement packet in intervals of 5 - so as to reduce network congestion;
             roomId: roomId,
             percentage: data.percentageCompleted,
@@ -110,7 +110,6 @@ const FileRecieverInterface = ({
             userId: uniqueUserId,
             senderId: data.senderId
           });
-        }
       }
     );
     socketIO.on("roomInvalidated", () => {
