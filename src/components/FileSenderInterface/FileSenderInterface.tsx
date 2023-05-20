@@ -109,6 +109,7 @@ const FileSenderInterface = ({
       !currentSelectedUser && updateSelectedUser(data.userId);
     });
     socketIO.on("packet-acknowledged", (data: { percentage: number; userId: string; }) => {
+      console.log("~~ ", data);
       updateTmpPercentageStore(data.percentage); // TODO: Remove this!
       updateUserPercentage(data.userId, data.percentage);
     });
