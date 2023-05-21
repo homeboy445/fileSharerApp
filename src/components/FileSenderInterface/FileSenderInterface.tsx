@@ -17,7 +17,7 @@ const FileSenderInterface = ({
   fileObject: File;
   uniqueId: string;
   closeDialogBox: () => void;
-  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string },
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string, isDebugMode: () => boolean },
 }) => {
 
   const [fileHandlerInstance] = useState(new FileSender(fileObject));
@@ -34,9 +34,10 @@ const FileSenderInterface = ({
   const [socketIO] = useState(socketInstance.getSocketInstance());
   const [userCount, updateUserCount] = useState(0);
   const [connectedUsers, updateConnectedUsers] = useState<Record<string, number>>({});
-  const [currentSelectedUser, updateSelectedUser] = useState('');
+  const [currentSelectedUser, updateSelectedUser] = useState("");
   const [didFileTransferStart, toggleFileTransferState] = useState<boolean>(false);
   const [tmpPercentageStore, updateTmpPercentageStore] = useState<number>(0);
+  const [debugString, updateDebugString] = useState<string>("");
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -123,6 +124,11 @@ const FileSenderInterface = ({
 
   return (
     <div className="main-parent">
+      {
+        globalUtilStore?.isDebugMode()
+        ? <h2 style={{ marginBottom: "-5%" }}>{debugString}</h2>
+        : null
+      }
       <div className="main-container-1">
         <FileInfoBox fileInfo={fileInfo} />
         <div className="main-file-transmission-section">
@@ -204,7 +210,8 @@ const FileSenderInterface = ({
                       roomId: uniqueId,
                     });
                   },
-                  (currentPercentage: number) => {
+                  (currentPercentage: number, pId: number) => {
+                    updateDebugString(JSON.stringify({ percentage: currentPercentage, pId }));
                   }, () => {
                     // this will be called when all the data packets have been dispatched!
                   }

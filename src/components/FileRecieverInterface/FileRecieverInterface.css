@@ -48,10 +48,6 @@
   width: 50%;
 }
 
-#userCount {
-  /* margin-top: -5%; */
-}
-
 @media only screen and (max-width: 600px) {
   .main-parent {
     position: absolute;

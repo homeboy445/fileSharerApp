@@ -10,6 +10,8 @@ import socketIO from "./connections/socketIO";
 import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 
+type GenericObject = { [params: string]: any };
+
 const idStore: { [props: string]: any } = {};
 const uniqueUserId = (function(){
   let uuid = uuidv4();
@@ -32,10 +34,10 @@ const App = () => {
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
 
-  const getParamsObject = (): { id: string | null } => {
+  const getParamsObject = (): GenericObject => {
     const URL = window.location.href;
     const indexOfQueryStart = URL.indexOf("?");
-    const queryParams = { id: null };
+    const queryParams: GenericObject = { id: null };
     if (indexOfQueryStart !== -1) {
       URL.slice(indexOfQueryStart + 1)
         .split("&")
@@ -48,7 +50,7 @@ const App = () => {
     return queryParams;
   };
 
-  const queryParams: { id: string | null } = getParamsObject();
+  const queryParams: GenericObject = getParamsObject();
 
   const logToUI = (message: string) => {
     const data = { message, id: uuidv4() };
@@ -164,6 +166,7 @@ const App = () => {
             logToUI,
             queueMessagesForReloads,
             getUserId: () => uniqueUserId,
+            isDebugMode: () => !!queryParams["debugMode"]
           }}
         />
       ) : null}
@@ -176,7 +179,8 @@ const App = () => {
           globalUtilStore={{
             logToUI,
             queueMessagesForReloads,
-            getUserId: () => uniqueUserId
+            getUserId: () => uniqueUserId,
+            isDebugMode: () => !!queryParams["debugMode"]
           }}
         />
       ) : null}

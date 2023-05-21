@@ -59,7 +59,7 @@ export class FileSender {
       fileType: any;
       uniqueID: any;
     }) => void,
-    updatePercentageCallback: (perc: number) => void, // This callback should run on percentage update;
+    updatePercentageCallback: (perc: number, pId: number) => void, // This callback should run on percentage update;
     dataTransmissionCompleteCallback: () => void
   ) {
     // TODO: check out writable streams for this...
@@ -86,7 +86,7 @@ export class FileSender {
         percentageCompleted: Math.floor((end / this.fileObject.size) * 100)
       };
       senderCallback(dataPacket);
-      updatePercentageCallback(dataPacket.percentageCompleted);
+      updatePercentageCallback(dataPacket.percentageCompleted, pId);
     }
     dataTransmissionCompleteCallback();
   }

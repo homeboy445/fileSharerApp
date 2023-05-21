@@ -14,7 +14,7 @@ const FileRecieverInterface = ({
 }: {
   roomId: string;
   closeDialogBox: () => void;
-  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string },
+  globalUtilStore?: { logToUI: (message: string) => void, queueMessagesForReloads: (message: string) => void, getUserId: () => string, isDebugMode: () => boolean },
 }) => {
   const fileReceiverInstance = new FileReciever();
   const localStorageKey = "_fl_sharer_" + roomId;
