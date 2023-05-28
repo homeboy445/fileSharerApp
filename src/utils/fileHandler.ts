@@ -26,69 +26,113 @@ class FileHandlerUtil {
 }
 
 
+export enum FileTransmissionEnum {
+  SEND = "fl_send",
+  RECEIVE = "fl_receive"
+};
+
+export type dataPacket = {
+  fileChunkArrayBuffer: ArrayBuffer;
+  packetId: number;
+  isProcessing: boolean;
+  totalPackets: number
+  chunkSize: number
+  fileName: string;
+  fileType: string;
+  uniqueID: string;
+  percentageCompleted: number;
+};
+
 export class FileSender {
-  fileObject: File;
+  private fileObject: File;
 
-  ALLOWED_PAYLOAD_SIZE: number;
+  private ALLOWED_PAYLOAD_SIZE: number;
 
-  totalPackets: number;
+  private totalPackets: number;
 
+  private fileSenderCallback = (...args: any[]) => {};
+  
   uniqueID: number;
+
+  private packetTracker: { [packetId: string]: boolean } = {};
+
+  private packetSender: ({ pId }: { pId: number }) => any;
 
   constructor(file: any) {
     this.fileObject = file;
     this.ALLOWED_PAYLOAD_SIZE = 1024 * 100;
     this.totalPackets = Math.ceil(this.fileObject.size / this.ALLOWED_PAYLOAD_SIZE);
     this.uniqueID = Math.round(Math.random() * 100000);
-    // if (this.fileObject.size > (1024 * 1024) * 200) {
-    //   // throw new Error("Only upto 200Mb data upload is supported currently!");
-    // }
+    this.packetSender = this.getDataTransmissionIteratorCaller();
   }
 
-  getFileSize() {
-    return this.fileObject.size;
+  registerSenderCallback(callback: (dataObject: dataPacket) => void) {
+    this.fileSenderCallback = callback;
   }
 
-  async splitIntoChunksAndSendData(
-    senderCallback: (arg0: {
-      fileChunkArrayBuffer: any;
-      packetId: number;
-      isProcessing: boolean;
-      totalPackets: any;
-      fileName: any;
-      fileType: any;
-      uniqueID: any;
-    }) => void,
-    updatePercentageCallback: (perc: number, pId: number) => void, // This callback should run on percentage update;
-    dataTransmissionCompleteCallback: () => void
-  ) {
-    // TODO: check out writable streams for this...
-    for (
-      let start = 0,
-        end = Math.min(this.ALLOWED_PAYLOAD_SIZE, this.fileObject.size),
-        pId = 0;
-      start < this.fileObject.size;
-      pId++
-    ) {
-      const fileChunk = this.fileObject.slice(start, end);
-      const fileChunkArrayBuffer = await fileChunk.arrayBuffer();
-      start = end;
-      end = Math.min(end + this.ALLOWED_PAYLOAD_SIZE, this.fileObject.size);
-      const dataPacket = {
-        fileChunkArrayBuffer,
-        packetId: pId + 1,
-        isProcessing: start < this.fileObject.size ? true : false,
-        totalPackets: this.totalPackets,
-        chunkSize: fileChunk.size,
-        fileName: this.fileObject.name,
-        fileType: this.fileObject.type,
-        uniqueID: this.uniqueID, // FIXME: This might not be necessary!
-        percentageCompleted: Math.floor((end / this.fileObject.size) * 100)
-      };
-      senderCallback(dataPacket);
-      updatePercentageCallback(dataPacket.percentageCompleted, pId);
+  getFileInfo() {
+    return {
+      name: this.fileObject.name,
+      type: this.fileObject.type,
+      size: this.fileObject.size
+    };
+  }
+
+  private getDataTransmissionIteratorCaller() {
+    const _this = this;
+    async function *iterateAndSendData() {
+      for (
+        let start = 0,
+          end = Math.min(_this.ALLOWED_PAYLOAD_SIZE, _this.fileObject.size),
+          pId = 0;
+        start < _this.fileObject.size;
+        pId++
+      ) {
+        yield pId;
+        console.log("sending packet with id:", pId);
+        const fileChunk = _this.fileObject.slice(start, end);
+        const fileChunkArrayBuffer = await fileChunk.arrayBuffer();
+        start = end;
+        end = Math.min(end + _this.ALLOWED_PAYLOAD_SIZE, _this.fileObject.size);
+        const dataPacket = {
+          fileChunkArrayBuffer,
+          packetId: pId + 1,
+          isProcessing: start < _this.fileObject.size ? true : false,
+          totalPackets: _this.totalPackets,
+          chunkSize: fileChunk.size,
+          fileName: _this.fileObject.name,
+          fileType: _this.fileObject.type,
+          uniqueID: _this.uniqueID, // FIXME: This might not be necessary!
+          percentageCompleted: Math.floor((end / _this.fileObject.size) * 100)
+        };
+        _this.fileSenderCallback(dataPacket);
+      }
     }
-    dataTransmissionCompleteCallback();
+    const iterator = iterateAndSendData();
+    iterator.next();
+    return (async ({ pId }: { pId: number }) => {
+      // console.log("iterator callback called with pId:", pId);
+      if (typeof pId !== "number") {
+        throw new Error("File packet Id is empty!");
+      }
+      if (pId && !this.packetTracker[pId]) { // if pId is 0, we need to proceed - not exit early!
+        return true;
+      }
+      delete this.packetTracker[pId]; // We will send the packet as soon as the first response out of many receivers comes!
+      const value = await iterator.next();
+      this.packetTracker[value.value || 0] = true;
+      // console.log("iterator got called: ", value);
+      return !value.done;
+    }).bind(this);
+  }
+
+  /**
+   * This method returns the callback which when called sends a data packet to the sender callback registered.
+   * Note: the callback returns true in case the packet was sent and returns false when the transmission is complete!
+   * @returns callback
+   */
+  getPacketTransmitter() {
+    return this.packetSender;
   }
 
 }
