@@ -87,7 +87,7 @@ const FileSenderInterface = ({
       window.location.href = "/";
     }
     fileHandlerInstance.registerSenderCallback((dataObject: dataPacket) => {
-      // console.log('sending packet!');
+      console.log('sending packet!');
       socketIO.emit("sendFile", {
         ...dataObject,
         roomId: uniqueId,

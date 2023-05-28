@@ -119,10 +119,17 @@ export class FileSender {
         return true;
       }
       delete this.packetTracker[pId]; // We will send the packet as soon as the first response out of many receivers comes!
-      const value = await iterator.next();
-      this.packetTracker[value.value || 0] = true;
-      // console.log("iterator got called: ", value);
-      return !value.done;
+      let value;
+      for (let idx = 0; idx < 10; idx++) {
+        value = await iterator.next();
+        this.packetTracker[value.value || 0] = true;
+      }
+      if (value?.done) {
+        this.packetTracker = {};
+        return false;
+      } else {
+        return true;
+      }
     }).bind(this);
   }
 
