@@ -3,10 +3,11 @@ import QRCode from "react-qr-code";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import "./FileSenderInterface.css";
-import { FileSender } from "../../utils/fileHandler";
+import { FileSender, FileTransmissionEnum, dataPacket } from "../../utils/fileHandler";
 import socketInstance from "../../connections/socketIO";
 import cookieManager from "../../utils/cookieManager";
 import CONSTANTS from "../../consts";
+import { eventBus } from "../../utils/events";
 
 const FileSenderInterface = ({
   fileObject,
@@ -26,11 +27,7 @@ const FileSenderInterface = ({
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [inputUrlValue, updateInputUrlValue] = useState(shareableLink);
-  const [fileInfo] = useState({
-    name: fileHandlerInstance?.fileObject?.name,
-    type: fileHandlerInstance?.fileObject?.type,
-    size: fileHandlerInstance?.fileObject?.size,
-  });
+  const [fileInfo] = useState(fileHandlerInstance.getFileInfo());
   const [socketIO] = useState(socketInstance.getSocketInstance());
   const [userCount, updateUserCount] = useState(0);
   const [connectedUsers, updateConnectedUsers] = useState<Record<string, number>>({});
@@ -74,7 +71,7 @@ const FileSenderInterface = ({
     connectedUsersList.forEach((key) => {
       if (connectedUsers[key] >= 100) count++;
     });
-    if (count === connectedUsersList.length) {
+    if (connectedUsersList.length !== 0 && count === connectedUsersList.length) {
       setTimeout(() => {
         globalUtilStore?.queueMessagesForReloads("File transfer successful!");
         socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
@@ -85,10 +82,17 @@ const FileSenderInterface = ({
   }
 
   useEffect(() => {
-    if (fileHandlerInstance.getFileSize() >= (1024 * 1024) * 1624) {
+    if (fileInfo.size >= (1024 * 1024) * 1624) {
       globalUtilStore?.queueMessagesForReloads("Only 1.5Gb of data transfer is permitted currently!");
       window.location.href = "/";
     }
+    fileHandlerInstance.registerSenderCallback((dataObject: dataPacket) => {
+      // console.log('sending packet!');
+      socketIO.emit("sendFile", {
+        ...dataObject,
+        roomId: uniqueId,
+      });
+    });
     socketIO.on("connect", () => {
       console.log("connected!");
     });
@@ -107,18 +111,33 @@ const FileSenderInterface = ({
       console.log("~~ user count got updated: ", data);
       updateUserCount(data.userCount);
       updateUserPercentage(data.userId, 0, data.userLeft);
-      !currentSelectedUser && updateSelectedUser(data.userId);
+      if (data.userLeft) {
+        updateSelectedUser(Object.keys(connectedUsers)[0] || "");
+      } else if (!currentSelectedUser) {
+        console.log("updating current selected user!");
+        updateSelectedUser(data.userId);
+      }
     });
-    socketIO.on("packet-acknowledged", (data: { percentage: number; userId: string; }) => {
-      console.log("~~ ", data);
+    socketIO.on("packet-acknowledged", (data: { percentage: number; userId: string; packetId: number }) => {
+      // console.log("~~ Received the packet-acknowledgement: ", data);
+      eventBus.trigger(FileTransmissionEnum.RECEIVE, { pId: data.packetId });
       updateTmpPercentageStore(data.percentage); // TODO: Remove this!
       updateUserPercentage(data.userId, data.percentage);
+    });
+    eventBus.on(FileTransmissionEnum.SEND, (dataObj: { pId: number }) => {
+      !didFileTransferStart && toggleFileTransferState(true);
+      fileHandlerInstance.getPacketTransmitter()(dataObj);
+    });
+    eventBus.on(FileTransmissionEnum.RECEIVE, (dataObj: { pId: number }) => {
+      eventBus.trigger(FileTransmissionEnum.SEND, dataObj);
     });
     return () => {
       socketIO.off("connect");
       socketIO.off(uniqueId + ":users");
       socketIO.off("recieveFile");
       socketIO.off("packet-acknowledged");
+      eventBus.off(FileTransmissionEnum.SEND);
+      eventBus.off(FileTransmissionEnum.RECEIVE);
     };
   }, [currentSelectedUser, connectedUsers]);
 
@@ -126,8 +145,8 @@ const FileSenderInterface = ({
     <div className="main-parent">
       {
         globalUtilStore?.isDebugMode()
-        ? <h2 style={{ marginBottom: "-5%" }}>{debugString}</h2>
-        : null
+          ? <h2 style={{ marginBottom: "-5%" }}>{debugString}</h2>
+          : null
       }
       <div className="main-container-1">
         <FileInfoBox fileInfo={fileInfo} />
@@ -201,21 +220,7 @@ const FileSenderInterface = ({
             <button
               disabled={userCount === 0 || didFileTransferStart}
               onClick={() => {
-                fileHandlerInstance?.splitIntoChunksAndSendData(
-                  async (dataObject: any) => {
-                    !didFileTransferStart && toggleFileTransferState(true);
-                    await new Promise((resolve) => setTimeout(resolve, 1000)); // Doing this to prevent flooding the server!
-                    socketIO.emit("sendFile", {
-                      ...dataObject,
-                      roomId: uniqueId,
-                    });
-                  },
-                  (currentPercentage: number, pId: number) => {
-                    updateDebugString(JSON.stringify({ percentage: currentPercentage, pId }));
-                  }, () => {
-                    // this will be called when all the data packets have been dispatched!
-                  }
-                  );
+                eventBus.trigger(FileTransmissionEnum.SEND, { pId: 0 }); // Starting the file transmission chain!
               }}
             >
               Send File
@@ -232,9 +237,9 @@ const FileSenderInterface = ({
         </div>
       </div>
       <h3 id="userCount">
-              {userCount === 0
-                ? "No user is connected as of yet!"
-                : `${userCount} user(s) are connected!`}
+        {userCount === 0
+          ? "No user is connected as of yet!"
+          : `${userCount} user(s) are connected!`}
       </h3>
     </div>
   );
