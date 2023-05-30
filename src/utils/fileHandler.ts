@@ -89,7 +89,7 @@ export class FileSender {
         pId++
       ) {
         yield pId;
-        console.log("sending packet with id:", pId);
+        // console.log("sending packet with id:", pId);
         const fileChunk = _this.fileObject.slice(start, end);
         const fileChunkArrayBuffer = await fileChunk.arrayBuffer();
         start = end;
@@ -110,26 +110,17 @@ export class FileSender {
     }
     const iterator = iterateAndSendData();
     iterator.next();
-    return (async ({ pId }: { pId: number }) => {
-      // console.log("iterator callback called with pId:", pId);
-      if (typeof pId !== "number") {
-        throw new Error("File packet Id is empty!");
+    return (async () => { // will send 100 packets at a time!
+      let packets_Sent = 0;
+      for (let idx = 0; idx < 100; idx++) {
+        let value = await iterator.next();
+        if (value.done) {
+          return false;
+        }
+        ++packets_Sent;
       }
-      if (pId && !this.packetTracker[pId]) { // if pId is 0, we need to proceed - not exit early!
-        return true;
-      }
-      delete this.packetTracker[pId]; // We will send the packet as soon as the first response out of many receivers comes!
-      let value;
-      for (let idx = 0; idx < 10; idx++) {
-        value = await iterator.next();
-        this.packetTracker[value.value || 0] = true;
-      }
-      if (value?.done) {
-        this.packetTracker = {};
-        return false;
-      } else {
-        return true;
-      }
+      // console.log("packets sent: ", packets_Sent);
+      return true;
     }).bind(this);
   }
 
@@ -141,7 +132,6 @@ export class FileSender {
   getPacketTransmitter() {
     return this.packetSender;
   }
-
 }
 
 

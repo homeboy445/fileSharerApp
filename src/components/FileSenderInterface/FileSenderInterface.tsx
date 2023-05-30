@@ -87,7 +87,7 @@ const FileSenderInterface = ({
       window.location.href = "/";
     }
     fileHandlerInstance.registerSenderCallback((dataObject: dataPacket) => {
-      console.log('sending packet!');
+      // console.log('sending packet!');
       socketIO.emit("sendFile", {
         ...dataObject,
         roomId: uniqueId,
@@ -124,9 +124,9 @@ const FileSenderInterface = ({
       updateTmpPercentageStore(data.percentage); // TODO: Remove this!
       updateUserPercentage(data.userId, data.percentage);
     });
-    eventBus.on(FileTransmissionEnum.SEND, (dataObj: { pId: number }) => {
+    eventBus.on(FileTransmissionEnum.SEND, async (dataObj: { pId: number }) => {
       !didFileTransferStart && toggleFileTransferState(true);
-      fileHandlerInstance.getPacketTransmitter()(dataObj);
+      await fileHandlerInstance.getPacketTransmitter()(dataObj);
     });
     eventBus.on(FileTransmissionEnum.RECEIVE, (dataObj: { pId: number }) => {
       eventBus.trigger(FileTransmissionEnum.SEND, dataObj);
