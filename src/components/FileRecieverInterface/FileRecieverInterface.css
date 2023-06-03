@@ -45,7 +45,7 @@
 }
 
 .circular-progress-bar-wrapper {
-  width: 100%;
+  width: 80%;
 }
 
 @media only screen and (max-width: 600px) {
