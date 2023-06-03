@@ -83,7 +83,7 @@ const FileSenderInterface = ({
     };
     const seconds = Math.floor(elapsedTime / 1000);
     const minutes = Math.floor(seconds / 60);
-    return format(minutes) + ":" + format(seconds);
+    return format(minutes % 60) + ":" + format(seconds % 60);
   }
 
   const updateUserPercentage = (

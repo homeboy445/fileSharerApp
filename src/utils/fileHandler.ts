@@ -1,3 +1,5 @@
+import * as pako from "pako";
+
 class FileHandlerUtil {
   protected static concatArrayBuffers(arg1: unknown, arg2: unknown) {
     // Taken from https://gist.github.com/gogromat/446e962bde1122747cfe
@@ -22,6 +24,14 @@ class FileHandlerUtil {
   ) {
     const blobObject = new Blob([arrayBuffer], { type });
     return blobObject;
+  }
+
+  static compressPacket(packet: ArrayBuffer) {
+    return pako.deflate(packet);
+  }
+
+  static uncompressPacket(packet: Uint8Array) {
+    return pako.inflate(packet);
   }
 }
 
@@ -53,8 +63,6 @@ export class FileSender {
   private fileSenderCallback = (...args: any[]) => {};
   
   uniqueID: number;
-
-  private packetTracker: { [packetId: string]: boolean } = {};
 
   private packetSender: ({ pId }: { pId: number }) => any;
 
@@ -91,7 +99,7 @@ export class FileSender {
         yield pId;
         // console.log("sending packet with id:", pId);
         const fileChunk = _this.fileObject.slice(start, end);
-        const fileChunkArrayBuffer = await fileChunk.arrayBuffer();
+        const fileChunkArrayBuffer = FileHandlerUtil.compressPacket(await fileChunk.arrayBuffer());
         start = end;
         end = Math.min(end + _this.ALLOWED_PAYLOAD_SIZE, _this.fileObject.size);
         const dataPacket = {
@@ -165,7 +173,7 @@ export class FileReciever {
   ) {
     // the callback will receive the blob file;
     const { fileChunkArrayBuffer, isProcessing, fileType, fileName } = dataPacket;
-    this.appendToBlob(fileChunkArrayBuffer, fileType);
+    this.appendToBlob(FileHandlerUtil.uncompressPacket(fileChunkArrayBuffer), fileType);
     if (isProcessing) {
       return false;
     }
