@@ -4,6 +4,8 @@ import "./Hoverable.css";
 const Hoverable = ({ element, text }: { element: any; text: string }) => {
   const [isHovering, toggleHover] = useState(false);
   const ref = useRef(null);
+  const getBoundRect = ref.current !== null ? (ref.current as any).getBoundingClientRect() : {};
+
   return (
     <div
       className="hoverable"
@@ -18,7 +20,19 @@ const Hoverable = ({ element, text }: { element: any; text: string }) => {
       {element}
       <span
         className="tooltip"
-        style={{ transform: isHovering ? "scale(1)" : "scale(0)" }}
+        style={{
+          transform: isHovering ? "scale(1)" : "scale(0)",
+          ...(ref.current != null
+            ? {
+                top:
+                  Math.round(getBoundRect.top + 100) +
+                  "px",
+                left:
+                  Math.round(getBoundRect.left - 200) +
+                  "px",
+              }
+            : {}),
+        }}
       >
         {text}
       </span>

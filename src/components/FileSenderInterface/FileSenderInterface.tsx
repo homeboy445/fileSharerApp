@@ -42,9 +42,7 @@ const FileSenderInterface = ({
   const [fileInfo] = useState(fileHandlerInstance.getFileInfo());
   const [socketIO] = useState(socketInstance.getSocketInstance());
   const [userCount, updateUserCount] = useState(0);
-  const [connectedUsers, updateConnectedUsers] = useState<
-    Record<string, number>
-  >({});
+  const [connectedUsers, updateConnectedUsers] = useState<{ [userId: string]: { percentage: number; color: string }}>({});
   const [currentSelectedUser, updateSelectedUser] = useState("");
   const [didFileTransferStart, toggleFileTransferState] =
     useState<boolean>(false);
@@ -95,7 +93,12 @@ const FileSenderInterface = ({
     if (deleteUser) {
       delete users[userId];
     } else {
-      users[userId] = percentage;
+      users[userId] = users[userId] || {};
+      users[userId].percentage = percentage;
+    }
+    if (users[userId] && !users[userId].color) {
+      const len = Object.keys(users).length;
+      users[userId].color = len == 1 ? "blue" : len == 2 ? "red" : "green";
     }
     updateConnectedUsers(users);
     reloadIfFileSendingDone();
@@ -105,7 +108,7 @@ const FileSenderInterface = ({
     let count = 0;
     const connectedUsersList = Object.keys(connectedUsers);
     connectedUsersList.forEach((key) => {
-      if (connectedUsers[key] >= 100) count++;
+      if (connectedUsers[key].percentage >= 100) count++;
     });
     if (
       connectedUsersList.length !== 0 &&
@@ -235,15 +238,15 @@ const FileSenderInterface = ({
           ) : (
             <div className="circular-progress-bar-wrapper">
               <CircularProgressbar
-                value={connectedUsers[currentSelectedUser]}
+                value={connectedUsers[currentSelectedUser].percentage}
                 text={
-                  connectedUsers[currentSelectedUser] >= 100
+                  connectedUsers[currentSelectedUser].percentage >= 100
                     ? "Done!"
-                    : `${connectedUsers[currentSelectedUser]}%`
+                    : `${connectedUsers[currentSelectedUser].percentage}%`
                 }
                 strokeWidth={1}
                 styles={buildStyles({
-                  pathColor: "blue",
+                  pathColor: connectedUsers[currentSelectedUser].color,
                   textColor: "blue",
                   trailColor: "grey",
                 })}
