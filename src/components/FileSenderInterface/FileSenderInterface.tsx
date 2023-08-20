@@ -1,25 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
-import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import "./FileSenderInterface.css";
 import {
-  FileSender,
   FileTransmissionEnum,
-  dataPacket,
+  FilePacket,
+  fileTransferrer
 } from "../../utils/fileHandler";
 import socketInstance from "../../connections/socketIO";
 import cookieManager from "../../utils/cookieManager";
 import CONSTANTS from "../../consts";
 import { eventBus } from "../../utils/events";
+import ProgressBar from "../ProgressBar/ProgressBar";
 
 const FileSenderInterface = ({
-  fileObject,
   uniqueId,
   closeDialogBox,
   globalUtilStore,
 }: {
-  fileObject: File;
   uniqueId: string;
   closeDialogBox: () => void;
   globalUtilStore?: {
@@ -29,7 +27,6 @@ const FileSenderInterface = ({
     isDebugMode: () => boolean;
   };
 }) => {
-  const [fileHandlerInstance] = useState(new FileSender(fileObject));
 
   const shareableLink = `${
     process.env.REACT_APP_MODE === "dev"
@@ -37,18 +34,16 @@ const FileSenderInterface = ({
       : CONSTANTS.frontEndURLProd
   }?id=${uniqueId}`;
 
+  const [selectedFileIndex, updateSelectedFileIndex] = useState(0);
   const [joinedRoom, updateRoomState] = useState(false);
   const [inputUrlValue, updateInputUrlValue] = useState(shareableLink);
-  const [fileInfo] = useState(fileHandlerInstance.getFileInfo());
   const [socketIO] = useState(socketInstance.getSocketInstance());
-  const [userCount, updateUserCount] = useState(0);
-  const [connectedUsers, updateConnectedUsers] = useState<{ [userId: string]: { percentage: number; color: string }}>({});
-  const [currentSelectedUser, updateSelectedUser] = useState("");
+  const [userStore, updateUserStore] = useState<{ [userId: string]: boolean }>({});
+  const [percentageStore, updatePercentage] = useState<{ [identifier: string]: number}>({});
   const [didFileTransferStart, toggleFileTransferState] =
     useState<boolean>(false);
-  const [tmpPercentageStore, updateTmpPercentageStore] = useState<number>(0);
   const [elapsedTime, updateElapsedTime] = useState<number>(0);
-  const [debugString, updateDebugString] = useState<string>("");
+  const [flag, toggleFlag] = useState(false);
   let timerInterval: NodeJS.Timer | null = null;
 
   const unloadFnRef = useRef((e: any) => {
@@ -68,6 +63,10 @@ const FileSenderInterface = ({
     console.log("removed the unload listener!");
     window.removeEventListener("beforeunload", unloadFnRef.current);
   };
+  
+  const forceUpdateState = () => {
+    toggleFlag(!flag);
+  }
 
   const getFormatedElapsedTimeString = () => {
     const format = (time: number) => {
@@ -84,36 +83,20 @@ const FileSenderInterface = ({
     return format(minutes % 60) + ":" + format(seconds % 60);
   }
 
-  const updateUserPercentage = (
-    userId: string,
-    percentage: number,
-    deleteUser = false
-  ) => {
-    const users = connectedUsers;
-    if (deleteUser) {
-      delete users[userId];
-    } else {
-      users[userId] = users[userId] || {};
-      users[userId].percentage = percentage;
+  const updatePercentageInStore = ({ fileId, percentage, userId }: { fileId: number; percentage: number; userId?: string }) => {
+    percentageStore[`${fileId}`] = percentage;
+    if (userId) {
+      percentageStore[userId] = percentage;
     }
-    if (users[userId] && !users[userId].color) {
-      const len = Object.keys(users).length;
-      users[userId].color = len == 1 ? "blue" : len == 2 ? "red" : "green";
+    updatePercentage(percentageStore);
+    forceUpdateState();
+    if (percentage == 100) {
+      reloadIfFileSendingDone();
     }
-    updateConnectedUsers(users);
-    reloadIfFileSendingDone();
   };
 
   const reloadIfFileSendingDone = () => {
-    let count = 0;
-    const connectedUsersList = Object.keys(connectedUsers);
-    connectedUsersList.forEach((key) => {
-      if (connectedUsers[key].percentage >= 100) count++;
-    });
-    if (
-      connectedUsersList.length !== 0 &&
-      count === connectedUsersList.length
-    ) {
+    if (Object.values(percentageStore).every((value) => value == 100)) {
       timerInterval && clearInterval(timerInterval);
       setTimeout(() => {
         globalUtilStore?.queueMessagesForReloads("File transfer successful!");
@@ -125,14 +108,17 @@ const FileSenderInterface = ({
   };
 
   useEffect(() => {
-    if (fileInfo.size >= 1024 * 1024 * 1624) {
+    if (fileTransferrer.doesAnyFileExceedFileSizeLimit) {
       globalUtilStore?.queueMessagesForReloads(
         "Only 1.5Gb of data transfer is permitted currently!"
       );
       window.location.href = "/";
     }
-    fileHandlerInstance.registerSenderCallback((dataObject: dataPacket) => {
-      // console.log('sending packet!');
+    fileTransferrer.registerSenderCallback((dataObject: FilePacket) => {
+      if (!dataObject) {
+        return;
+      }
+      console.log('sending packet for file: ', dataObject.fileName, " ", dataObject.isProcessing, " ", dataObject.percentageCompleted);
       socketIO.emit("sendFile", {
         ...dataObject,
         roomId: uniqueId,
@@ -144,43 +130,42 @@ const FileSenderInterface = ({
     if (!joinedRoom) {
       socketIO.emit("create-room", {
         id: uniqueId,
-        fileInfo: {
-          name: fileInfo?.name,
-          type: fileInfo?.type,
-          size: fileInfo?.size,
-        },
+        filesInfo: fileTransferrer.getEachFileInfo(),
       });
       updateRoomState(true);
     }
     socketIO.on(
       uniqueId + ":users",
       (data: { userCount: number; userId: string; userLeft?: boolean }) => {
-        console.log("~~ user count got updated: ", data);
-        updateUserCount(data.userCount);
-        updateUserPercentage(data.userId, 0, data.userLeft);
+        const users = userStore;
         if (data.userLeft) {
-          updateSelectedUser(Object.keys(connectedUsers)[0] || "");
-        } else if (!currentSelectedUser) {
+          delete users[data.userId];
+        } else {
           console.log("updating current selected user!");
-          updateSelectedUser(data.userId);
+          users[data.userId] = true;
         }
+        if (Object.keys(users).length == 0 && didFileTransferStart) {
+          window.location.href = "/"; // exit if everybody left while file transfer was in progress!
+        }
+        updateUserStore(users);
+        forceUpdateState(); 
       }
     );
     socketIO.on(
       "packet-acknowledged",
-      (data: { percentage: number; userId: string; packetId: number }) => {
-        // console.log("~~ Received the packet-acknowledgement: ", data);
-        eventBus.trigger(FileTransmissionEnum.RECEIVE, { pId: data.packetId });
-        updateTmpPercentageStore(data.percentage); // TODO: Remove this!
-        updateUserPercentage(data.userId, data.percentage);
+      (data: { percentage: number; userId: string; packetId: number, fileId: number }) => {
+        console.log("~~ Received the packet-acknowledgement: ", data);
+        eventBus.trigger(FileTransmissionEnum.RECEIVE);
+        // The multi-file transfer mode currently supports only one user at a time - so maintaining percentages on the basis of files.
+        updatePercentageInStore({ fileId: data.fileId, percentage: data.percentage, userId: data.userId });
       }
     );
-    eventBus.on(FileTransmissionEnum.SEND, async (dataObj: { pId: number }) => {
+    eventBus.on(FileTransmissionEnum.SEND, async () => {
       !didFileTransferStart && toggleFileTransferState(true);
-      await fileHandlerInstance.getPacketTransmitter()(dataObj);
+      await fileTransferrer.send();
     });
-    eventBus.on(FileTransmissionEnum.RECEIVE, (dataObj: { pId: number }) => {
-      eventBus.trigger(FileTransmissionEnum.SEND, dataObj);
+    eventBus.on(FileTransmissionEnum.RECEIVE, () => {
+      eventBus.trigger(FileTransmissionEnum.SEND);
     });
     return () => {
       socketIO.off("connect");
@@ -191,15 +176,13 @@ const FileSenderInterface = ({
       eventBus.off(FileTransmissionEnum.RECEIVE);
       timerInterval && clearInterval(timerInterval);
     };
-  }, [currentSelectedUser, connectedUsers]);
+  }, [userStore, percentageStore, flag]);
 
+  const userIds = Object.keys(userStore);
   return (
     <div className="main-parent">
-      {globalUtilStore?.isDebugMode() ? (
-        <h2 style={{ marginBottom: "-5%" }}>{debugString}</h2>
-      ) : null}
       <div className="main-container-1">
-        <FileInfoBox fileInfo={fileInfo} />
+        <FileInfoBox fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)} />
         <div className="main-file-transmission-section">
           {!didFileTransferStart ? (
             <div className="main-file-link-handle">
@@ -235,53 +218,35 @@ const FileSenderInterface = ({
                 }}
               />
             </div>
-          ) : (
-            <div className="circular-progress-bar-wrapper">
-              <CircularProgressbar
-                value={connectedUsers[currentSelectedUser].percentage}
-                text={
-                  connectedUsers[currentSelectedUser].percentage >= 100
-                    ? "Done!"
-                    : `${connectedUsers[currentSelectedUser].percentage}%`
-                }
-                strokeWidth={1}
-                styles={buildStyles({
-                  pathColor: connectedUsers[currentSelectedUser].color,
-                  textColor: "blue",
-                  trailColor: "grey",
-                })}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "4%",
-                }}
-              >
-                {Object.keys(connectedUsers).map((userKey) => {
-                  return (
-                    <input
-                      type="radio"
-                      key={userKey}
-                      checked={userKey === currentSelectedUser}
-                      onChange={() => {
-                        updateSelectedUser(userKey);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-              <h1 id="elapsedTime">Elapsed time: {getFormatedElapsedTimeString()}</h1>
-            </div>
-          )}
+          ) : <div className="progress-bar-list" style={{ overflowY: fileTransferrer.getEachFileInfo().length > 5 ? "scroll" : "hidden" }}>
+                  {/* File Transfer UI differ for multi-file mode and single-file mode */}
+                  {fileTransferrer.isMultiFileMode ? fileTransferrer.getEachFileInfo().map((fileObject, fileIndex) => {
+                    return <ProgressBar
+                            title={fileObject.name}
+                            percentage={percentageStore[fileObject.fileId] || (percentageStore[fileObject.fileId] = 0)}
+                            isSelected={fileIndex === selectedFileIndex}
+                            onClickCallback={() => {
+                              updateSelectedFileIndex(fileIndex);
+                            }} />
+                  }) : userIds.map((userId, index) => {
+                    return <ProgressBar
+                            title={`User ${index + 1}`}
+                            percentage={percentageStore[userId] || (percentageStore[userId] = 0)}
+                            isSelected={false}
+                            onClickCallback={() => {}}
+                            style={{ progressBar: { color: ['blue', 'purple', 'yellow'][index] } }}
+                          />
+                  })}
+                </div>}
           <div className="main-file-send-cancel">
             <button
-              disabled={userCount === 0 || didFileTransferStart}
+              disabled={userIds.length === 0 || didFileTransferStart}
               onClick={() => {
                 const start = Date.now();
                 timerInterval = setInterval(() => {
                   updateElapsedTime(Date.now() - start);
                 }, 500);
-                eventBus.trigger(FileTransmissionEnum.SEND, { pId: 0 }); // Starting the file transmission chain!
+                eventBus.trigger(FileTransmissionEnum.SEND); // Starting the file transmission chain!
               }}
             >
               Send File
@@ -298,9 +263,9 @@ const FileSenderInterface = ({
         </div>
       </div>
       <h3 id="userCount">
-        {userCount === 0
+        {userIds.length === 0
           ? "No user is connected as of yet!"
-          : `${userCount} user(s) are connected!`}
+          : `${userIds.length} user(s) are connected!`}
       </h3>
     </div>
   );

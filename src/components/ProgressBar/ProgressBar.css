@@ -1,0 +1,101 @@
+.progress-bar-parent {
+    width: 100%;
+    display: flex;
+}
+
+.progress-bar-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    width: 100%;
+    border: 2px solid rgb(107, 107, 107);
+    margin-top: 2%;
+    margin-bottom: 2%;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.progress-bar-main > p {
+    margin: 0;
+    margin-right: 4%;
+    text-align: right;
+    margin-top: 1%;
+    margin-bottom: -1%;
+}
+
+.progress-title {
+    display: flex;
+    justify-content: space-between;
+    margin-left: 4%;
+    margin-right: 3%;
+}
+
+.progress-title > p {
+    margin-bottom: 1%;
+}
+
+.progress-title > p:nth-child(1) {
+    font-size: 1.09em;
+    font-weight: 600;
+}
+
+.progress-bar-holder {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.progress-bar-holder > p {
+    margin-left: 1%;
+}
+
+.progress-bar-wrapper {
+    height: 5px;
+    width: 92%;
+    align-self: center;
+    margin: 1%;
+    border-radius: 2px;
+    padding: 1%;
+    border: 2px solid black;
+    margin-bottom: 2%;
+}
+
+.progress-bar {
+    width: 90%;
+    background: blue;
+    height: 5px;
+}
+
+/* Scroll-bar customizations */
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+}
+  
+/* Track */
+::-webkit-scrollbar-track {
+    background: #aaa5a5;
+}
+
+::-webkit-scrollbar-corner {
+    border-radius: 4px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #000000; 
+}
+  
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+}
+
+/* Scroll-bar customizations end */
+
+.image-link {
+    width: 10%;
+    align-self: center;
+}
+

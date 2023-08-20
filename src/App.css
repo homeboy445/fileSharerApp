@@ -105,7 +105,7 @@
 }
 
 .fl-sub-1 > img {
-  width: 90%;
+  width: 70%;
 }
 
 #choose-file {
@@ -134,7 +134,7 @@
   -webkit-user-select: none;
   touch-action: manipulation;
   margin: 4%;
-  margin-top: 15%;
+  margin-top: 10%;
   width: 60%;
 }
 
@@ -144,6 +144,12 @@
 
 #choose-file:focus {
   box-shadow: rgba(50, 50, 93, .1) 0 0 0 1px inset, rgba(50, 50, 93, .2) 0 6px 15px 0, rgba(0, 0, 0, .1) 0 2px 2px 0, rgba(50, 151, 211, .3) 0 0 0 4px;
+}
+
+@media only screen and (max-width: 1300px) {
+  .fl-sub-1 > img {
+    width: 80%;
+  }
 }
 
 @media only screen and (max-width: 700px) {
@@ -247,29 +253,7 @@
   }
 }
 
-.main-parent {
-  position: fixed;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: rgba(255, 255, 255, 0.1) 0px 1px 1px 0px inset, rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
-  padding: 2%;
-  width: 75%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -52%);
-  z-index:1;
-}
 
-.main-container-1 {
-  width: 95%;
-  display: flex;
-  justify-content: space-between;
-  align-items: space-between;
-  padding: 5%;
-}
 
 .circular-progress-bar-wrapper {
   width: 80%;
@@ -284,4 +268,13 @@
 text.CircularProgressbar-text {
   text-align: center;
   transform: translate(-18%, 2%);
+}
+
+.progress-bar-list {
+  height: 500px;
+  width: 100%;
+  overflow: hidden;
+  padding: 5%;
+  margin-bottom: 2%;
+  margin-top: 2%;
 }

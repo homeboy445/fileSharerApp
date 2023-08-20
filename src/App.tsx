@@ -9,6 +9,7 @@ import MessageBox from "./components/PopUps/MessageBox/MessageBox";
 import socketIO from "./connections/socketIO";
 import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
+import { fileTransferrer } from "./utils/fileHandler";
 
 type GenericObject = { [params: string]: any };
 
@@ -28,7 +29,6 @@ const uniqueUserId = (function(){
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
-  const [fileObject, updateFileObject] = useState<File | null>(null);
   const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
   const [socketIoInstance] = useState(socketIO.getSocketInstance());
   const fileRef = useRef(null);
@@ -131,9 +131,9 @@ const App = () => {
             <input
               type="file"
               ref={fileRef}
+              multiple={true}
               onChange={(e) => {
-                updateFileObject((e as any).target.files[0]);
-                (window as any).file = (e as any).target.files[0];
+                fileTransferrer.initiate(Object.values((e as any).target.files));
                 if ((e as any).target.files.length > 0) {
                   toggleDialog(true);
                 }
@@ -155,9 +155,8 @@ const App = () => {
           </div>
         </div>
       </div>
-      {fileObject && !queryParams["id"] ? (
+      {showFileSharerDialog && !queryParams["id"] ? (
         <FileSenderInterface
-          fileObject={fileObject as unknown as File}
           uniqueId={uniqueUserId}
           closeDialogBox={function (): void {
             window.location.href = "/";

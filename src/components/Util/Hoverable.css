@@ -1,5 +1,6 @@
 .hoverable {
     cursor: pointer;
+    z-index: 100101010;
 }
 
 .hoverable > .tooltip {

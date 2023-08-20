@@ -6,6 +6,7 @@
     justify-content: center;
     align-items: center;
     transition: 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+    margin: 1%;
 }
 
 .main-file-link-handle {
