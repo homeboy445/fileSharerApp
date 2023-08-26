@@ -1,5 +1,10 @@
 import React from "react";
-import fileIcon from "../../assets/files.png";
+import ImageIcon from "../../assets/photo.png";
+import VideoIcon from "../../assets/film.png";
+import AudioIcon from "../../assets/music.png";
+import ZipIcon from "../../assets/zip-file.png";
+import DocumentIcon from "../../assets/document.png";
+
 import Hoverable from "../Util/Hoverable";
 import "./FileInfoBox.css";
 
@@ -8,6 +13,38 @@ const FileInfoBox = ({
 }: {
   fileInfo: { name: string; type: string; size: number, fileId?: string | number };
 }) => {
+
+  const getFileIcon = (fileName: string): string => {
+    const fileIcons: { [fileType: string]: string } = {
+      image: ImageIcon,
+      video: VideoIcon,
+      audio: AudioIcon,
+      zip: ZipIcon,
+      document: DocumentIcon
+    };
+    const extensions: { [fileType: string]: Array<string> } = {
+      image: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'],
+      video: ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'],
+      audio: ['mp3', 'wav', 'ogg', 'flac', 'aac'],
+      zip: ['zip', 'rar', '7z', 'tar', 'gz'],
+      document: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt']
+    };
+  
+    const extension = fileName.split('.')?.pop?.()?.toLowerCase?.();
+    if (!extension) {
+      return DocumentIcon;
+    }
+  
+    for (const type in extensions) {
+      if (extensions[type].includes(extension)) {
+        return fileIcons[type];
+      }
+    }
+  
+    return DocumentIcon;
+  };
+  
+
   const fileTypeInterceptedFromFileName = fileInfo?.name && fileInfo?.name.substring(
     (fileInfo?.name.lastIndexOf(".") + 1),
     fileInfo?.name.length
@@ -16,8 +53,7 @@ const FileInfoBox = ({
   const fileNameElement = fileName.length >= 45 ? <Hoverable element={<span>{fileName}</span>} text={fileName}/> : fileName;
   return (
     <div className="main-file-info-bx">
-      <img src={fileIcon} alt="" />
-      <h2>File Info</h2>
+      <img src={getFileIcon(fileName)} alt="" />
       <table cellPadding={"10%"}>
         <tbody>
           <tr>

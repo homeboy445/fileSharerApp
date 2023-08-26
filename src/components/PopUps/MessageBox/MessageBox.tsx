@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { v4 } from "uuid";
 import "./MessageBox.css";
 
 const MessageBox = ({
@@ -29,7 +28,7 @@ const MessageBox = ({
     <div
       className="message-box"
       style={{
-        top: `${10 + (messageBoxIndex || 0) * 10}%`,
+        top: `${(messageBoxIndex || 0) * 120 + 100}px`,
         transform: messageDurationBar < 100 ? "scale(1)" : "translateX(150%)",
       }}
     >

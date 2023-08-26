@@ -9,12 +9,9 @@
     padding: 2%;
 }
 
-.main-file-info-bx > h2 {
-    font-size: 2rem;
-}
-
 .main-file-info-bx > img {
-    width: 30%;
+    width: 50%;
+    margin: 4%;
 }
 
 .main-file-info-bx > table {
@@ -40,23 +37,7 @@
     overflow: hidden;
 }
 
-
-@media only screen and (max-width: 300px) {
-    .main-file-info-bx {
-        width: 50%;
-        margin-top: 22%;
-        padding: 2%;
-    }
-    .main-file-info-bx > h2 {
-        font-size: 1.1rem;
-    }
-}
-
 @media only screen and (max-width: 600px) {
-    .main-file-info-bx {
-        margin: 5%;
-        width: 60%;
-    }
     .main-file-info-bx > table > tbody > tr {
         font-size: 1rem;
     }
@@ -70,6 +51,9 @@
 }
 
 @media only screen and (max-width: 1000px) {
+    .main-file-info-bx {
+        width: 95%;
+    }
     .main-file-info-bx > table > tbody > tr > td:nth-child(1) {
         white-space: inherit;
     }

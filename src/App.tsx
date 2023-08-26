@@ -33,6 +33,18 @@ const App = () => {
   const [socketIoInstance] = useState(socketIO.getSocketInstance());
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
+  const [width, setWidth] = useState<number>(window.innerWidth);
+
+  const handleWindowSizeChange = () => {
+      setWidth(window.innerWidth);
+  }
+
+  useEffect(() => {
+      window.addEventListener('resize', handleWindowSizeChange);
+      return () => {
+        window.removeEventListener('resize', handleWindowSizeChange);
+      }
+  }, []);
 
   const getParamsObject = (): GenericObject => {
     const URL = window.location.href;
@@ -165,7 +177,8 @@ const App = () => {
             logToUI,
             queueMessagesForReloads,
             getUserId: () => uniqueUserId,
-            isDebugMode: () => !!queryParams["debugMode"]
+            isDebugMode: () => !!queryParams["debugMode"],
+            isNonDesktopDevice: width < 1000
           }}
         />
       ) : null}
@@ -179,7 +192,8 @@ const App = () => {
             logToUI,
             queueMessagesForReloads,
             getUserId: () => uniqueUserId,
-            isDebugMode: () => !!queryParams["debugMode"]
+            isDebugMode: () => !!queryParams["debugMode"],
+            isNonDesktopDevice: width < 1000
           }}
         />
       ) : null}

@@ -184,6 +184,7 @@ class FileTransmissionWrapper {
 
   private readonly PACKETS_TO_BE_SENT_PER_SESSION = 100;
 
+  totalFileCount = 0;
   isMultiFileMode = false;
   doesAnyFileExceedFileSizeLimit = false;
 
@@ -197,6 +198,7 @@ class FileTransmissionWrapper {
     }).bind(this)).sort((f1, f2) => {
       return f1.getFileInfo().size < f2.getFileInfo().size ? -1 : 1;
     });
+    this.totalFileCount = this.files.length;
     this.isMultiFileMode = this.files.length > 1;
   }
 

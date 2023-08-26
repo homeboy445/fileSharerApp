@@ -1,26 +1,4 @@
-.main-parent {
-  position: fixed;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: rgba(255, 255, 255, 0.1) 0px 1px 1px 0px inset, rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
-  padding: 2%;
-  width: 75%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -52%);
-  z-index:1;
-}
 
-.main-container-1 {
-  width: 95%;
-  display: flex;
-  justify-content: space-between;
-  align-items: space-between;
-  padding: 5%;
-}
 
 /* CSS */
 .cancel-button {
@@ -71,6 +49,14 @@
   box-shadow: rgba(0, 0, 0, .2) 0 1px 1px -3px, rgba(0, 0, 0, .14) 0 2px 5px 1px, rgba(0, 0, 0, .12) 0 1px 7px 0px;
 }
 
+@media only screen and (max-width: 1000px) {
+  .cancel-button {
+    margin-left: 0;
+    margin-top: -10%;
+  }
+}
+
+
 /* .cancel-button:disabled {
   background-color: rgba(0, 0, 0, .12);
   box-shadow: rgba(0, 0, 0, .2) 0 0 0 0, rgba(0, 0, 0, .14) 0 0 0 0, rgba(0, 0, 0, .12) 0 0 0 0;
@@ -82,42 +68,3 @@
 
 
  */
-
-@media only screen and (max-width: 600px) {
-  .main-parent {
-    position: absolute;
-    width: 500px;
-    transform: translate(-50%, -38%);
-    top: 65%;
-  }
-  .main-container-1 {
-    width: 100%;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2%;
-  }
-  .main-file-send-cancel {
-    width: 70%;
-  }
-  .main-file-send-cancel > button {
-    transform: scale(0.8);
-  }
-  #userCount {
-    margin-top: -3%;
-    font-size: 1rem;
-    font-weight: 400;
-    border: 2px solid red;
-    padding: 2%;
-    border-radius: 4px;
-  }
-}
-
-@media only screen and (max-width: 400px) {
-  .main-parent {
-    position: absolute;
-    width: 450px;
-    min-height: 100vh;
-    top: 55%;
-  }
-}

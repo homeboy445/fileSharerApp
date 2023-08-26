@@ -13,6 +13,7 @@ import CONSTANTS from "../../consts";
 import { eventBus } from "../../utils/events";
 import ProgressBar from "../ProgressBar/ProgressBar";
 
+let timerInterval: NodeJS.Timer | null = null;
 const FileSenderInterface = ({
   uniqueId,
   closeDialogBox,
@@ -25,6 +26,7 @@ const FileSenderInterface = ({
     queueMessagesForReloads: (message: string) => void;
     getUserId: () => string;
     isDebugMode: () => boolean;
+    isNonDesktopDevice: boolean
   };
 }) => {
 
@@ -44,7 +46,6 @@ const FileSenderInterface = ({
     useState<boolean>(false);
   const [elapsedTime, updateElapsedTime] = useState<number>(0);
   const [flag, toggleFlag] = useState(false);
-  let timerInterval: NodeJS.Timer | null = null;
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -96,14 +97,16 @@ const FileSenderInterface = ({
   };
 
   const reloadIfFileSendingDone = () => {
-    if (Object.values(percentageStore).every((value) => value == 100)) {
+    if (Object.values(percentageStore).every((value) => value == 100) && timerInterval != null) {
       timerInterval && clearInterval(timerInterval);
+      timerInterval = null;
+      globalUtilStore?.logToUI("File transfer complete! Clearing the session in 10s!");
       setTimeout(() => {
-        globalUtilStore?.queueMessagesForReloads("File transfer successful!");
+        // globalUtilStore?.queueMessagesForReloads("File transfer successful!");
         socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
         cookieManager.delete(CONSTANTS.uniqueIdCookie);
         window.location.href = "/";
-      }, 2000);
+      }, 10000);
     }
   };
 
@@ -154,7 +157,6 @@ const FileSenderInterface = ({
     socketIO.on(
       "packet-acknowledged",
       (data: { percentage: number; userId: string; packetId: number, fileId: number }) => {
-        console.log("~~ Received the packet-acknowledgement: ", data);
         eventBus.trigger(FileTransmissionEnum.RECEIVE);
         // The multi-file transfer mode currently supports only one user at a time - so maintaining percentages on the basis of files.
         updatePercentageInStore({ fileId: data.fileId, percentage: data.percentage, userId: data.userId });
@@ -179,12 +181,98 @@ const FileSenderInterface = ({
   }, [userStore, percentageStore, flag]);
 
   const userIds = Object.keys(userStore);
+  const filesInfo = fileTransferrer.getEachFileInfo();
   return (
     <div className="main-parent">
-      <div className="main-container-1">
-        <FileInfoBox fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)} />
-        <div className="main-file-transmission-section">
-          {!didFileTransferStart ? (
+      {
+        !globalUtilStore?.isNonDesktopDevice
+        ?
+        <div className="main-container-1">
+          <FileInfoBox fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)} />
+          <div className="main-file-transmission-section">
+            {!didFileTransferStart ? (
+              <div className="main-file-link-handle">
+                <h2>
+                  Scan the QRCode on the receiving device to start sharing...
+                </h2>
+                <QRCode
+                  value={shareableLink}
+                  size={256}
+                  style={{ margin: "5%" }}
+                />
+                <h2>Or, share this link...</h2>
+                <input
+                  type="text"
+                  readOnly={true}
+                  value={inputUrlValue}
+                  style={{
+                    color:
+                      inputUrlValue === "Copied to clipboard!"
+                        ? "green"
+                        : "black",
+                  }}
+                  onClick={() => {
+                    if (inputUrlValue === "Copied to clipboard!") {
+                      return;
+                    }
+                    window.navigator.clipboard.writeText(inputUrlValue);
+                    const url = inputUrlValue;
+                    updateInputUrlValue("Copied to clipboard!");
+                    setTimeout(() => {
+                      updateInputUrlValue(url);
+                    }, 1000);
+                  }}
+                />
+              </div>
+            ) : <div className="progress-bar-list" style={{ overflowY: fileTransferrer.getEachFileInfo().length > 5 ? "scroll" : "hidden" }}>
+                    {/* File Transfer UI differ for multi-file mode and single-file mode */}
+                    {fileTransferrer.isMultiFileMode ? filesInfo.map((fileObject, fileIndex) => {
+                      return <ProgressBar
+                              title={fileObject.name}
+                              percentage={percentageStore[fileObject.fileId] || (percentageStore[fileObject.fileId] = 0)}
+                              isSelected={fileIndex === selectedFileIndex}
+                              onClickCallback={() => {
+                                updateSelectedFileIndex(fileIndex);
+                              }} />
+                    }) : userIds.map((userId, index) => {
+                      return <ProgressBar
+                              title={`User ${index + 1}`}
+                              percentage={percentageStore[userId] || (percentageStore[userId] = 0)}
+                              isSelected={false}
+                              onClickCallback={() => {}}
+                              styleConfig={{ progressBar: { color: ['blue', 'purple', 'yellow'][index] } }}
+                            />
+                    })}
+                </div>}
+            <div className="main-file-send-cancel">
+              <button
+                disabled={userIds.length === 0 || didFileTransferStart}
+                onClick={() => {
+                  const start = Date.now();
+                  timerInterval = setInterval(() => {
+                    updateElapsedTime(Date.now() - start);
+                  }, 500);
+                  eventBus.trigger(FileTransmissionEnum.SEND); // Starting the file transmission chain!
+                }}
+              >
+                Send File
+              </button>
+              <button
+                onClick={() => {
+                  socketIO.emit("deleteRoom", { roomId: uniqueId });
+                  closeDialogBox();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        :
+        <div className="main-container-mobile-1">
+          {
+            !didFileTransferStart
+            ?
             <div className="main-file-link-handle">
               <h2>
                 Scan the QRCode on the receiving device to start sharing...
@@ -217,27 +305,43 @@ const FileSenderInterface = ({
                   }, 1000);
                 }}
               />
-            </div>
-          ) : <div className="progress-bar-list" style={{ overflowY: fileTransferrer.getEachFileInfo().length > 5 ? "scroll" : "hidden" }}>
-                  {/* File Transfer UI differ for multi-file mode and single-file mode */}
-                  {fileTransferrer.isMultiFileMode ? fileTransferrer.getEachFileInfo().map((fileObject, fileIndex) => {
-                    return <ProgressBar
-                            title={fileObject.name}
-                            percentage={percentageStore[fileObject.fileId] || (percentageStore[fileObject.fileId] = 0)}
-                            isSelected={fileIndex === selectedFileIndex}
-                            onClickCallback={() => {
-                              updateSelectedFileIndex(fileIndex);
-                            }} />
-                  }) : userIds.map((userId, index) => {
+          </div>
+            :
+          <div className="mobile-sending-section-1">
+             <div className="mobile-sending-button-1" style={ fileTransferrer.isMultiFileMode ? {} : { visibility: "hidden", marginTop: "5%", marginBottom: "1%" } }>
+                <button disabled={selectedFileIndex == 0} onClick={() => {
+                  updateSelectedFileIndex(selectedFileIndex - 1);
+                }}>Prev.</button>
+                <button disabled={selectedFileIndex + 1 == fileTransferrer.totalFileCount} onClick={() => {
+                  updateSelectedFileIndex(selectedFileIndex + 1);
+                }}>Next</button>
+             </div>
+            <FileInfoBox fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)} />
+            <div style={{ marginTop: "10%" }}>
+                {
+                  fileTransferrer.isMultiFileMode
+                  ?
+                  <ProgressBar
+                    title={(+percentageStore[filesInfo[selectedFileIndex].fileId] || 0) < 100 ? "Sending..." : "Done"}
+                    percentage={percentageStore[filesInfo[selectedFileIndex].fileId] || (percentageStore[filesInfo[selectedFileIndex].fileId] = 0)}
+                    isSelected={false}
+                    onClickCallback={() => {}}
+                    styleConfig={{ borderEnabled: false, css: { fontSize: "1rem" } }}
+                  />
+                  :
+                  userIds.map((userId, index) => {
                     return <ProgressBar
                             title={`User ${index + 1}`}
                             percentage={percentageStore[userId] || (percentageStore[userId] = 0)}
                             isSelected={false}
                             onClickCallback={() => {}}
-                            style={{ progressBar: { color: ['blue', 'purple', 'yellow'][index] } }}
+                            styleConfig={{ progressBar: { color: ['blue', 'purple', 'yellow'][index] }, borderEnabled: true, css: { fontSize: "1rem" } }}
                           />
-                  })}
-                </div>}
+                  })
+                }
+            </div>
+          </div>
+          }
           <div className="main-file-send-cancel">
             <button
               disabled={userIds.length === 0 || didFileTransferStart}
@@ -261,8 +365,8 @@ const FileSenderInterface = ({
             </button>
           </div>
         </div>
-      </div>
-      <h3 id="userCount">
+      }
+      <h3 id="userCount" style={ fileTransferrer.isMultiFileMode ? {} : { marginTop: "10%" } }>
         {userIds.length === 0
           ? "No user is connected as of yet!"
           : `${userIds.length} user(s) are connected!`}

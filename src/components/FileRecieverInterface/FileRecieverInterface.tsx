@@ -26,9 +26,12 @@ const FileRecieverInterface = ({
     queueMessagesForReloads: (message: string) => void;
     getUserId: () => string;
     isDebugMode: () => boolean;
+    isNonDesktopDevice: boolean;
   };
 }) => {
   const localStorageKey = "_fl_sharer_" + roomId;
+
+  const downloadRef = useRef<HTMLAnchorElement | null>(null);
 
   const [joinedRoom, updateRoomState] = useState(false);
   const [socketIO] = useState(socketInstance.getSocketInstance());
@@ -73,6 +76,7 @@ const FileRecieverInterface = ({
         }
         console.log("room data: ", data);
         updateFilesInfo(data.filesInfo);
+        forceStateUpdate();
       })
       .catch(() => {
         globalUtilStore?.queueMessagesForReloads("Some error occurred!");
@@ -150,43 +154,105 @@ const FileRecieverInterface = ({
   }, [flag]); // TODO: Study this phenomenon where removing this variable from this dependency array - the above socket callback was getting old values, I think it has something to do with the fact that on each state change I guess the whole function component reference is changed I think;
 
   const fileTransferComplete = isFileTransferComplete();
+  console.log("$$ ", fileTransferComplete, " ", selectedFileIndex, " ", filesInfo.length);
 
   return (
     <div className="main-parent">
-      <div className="main-container-1">
-        <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} />
-        <div
-          className="progress-bar-list"
-          style={{ overflowY: filesInfo.length > 4 ? "scroll" : "hidden" }}
-        >
-          {filesInfo.map((fileObject, fileIndex) => {
-            return (
-              <ProgressBar
-                title={fileObject.name}
-                percentage={fileReceivedPercentage[fileObject.fileId] || (fileReceivedPercentage[fileObject.fileId] = 0)}
-                isSelected={fileIndex === selectedFileIndex}
-                onClickCallback={() => {
-                  updateSelectedFileIndex(fileIndex);
-                }}
-                downloadMode={{
-                  enabled: true,
-                  link: fileTransferrer.getFileDownloadLink(fileObject.fileId),
-                  name: fileObject.name
-                }}
-              />
-            );
-          })}
+      {
+        !globalUtilStore?.isNonDesktopDevice
+        ?
+        <>
+          <div className="main-container-1">
+            <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} />
+            <div
+              className="progress-bar-list"
+              style={{ overflowY: filesInfo.length > 4 ? "scroll" : "hidden" }}
+            >
+              {filesInfo.map((fileObject, fileIndex) => {
+                return (
+                  <ProgressBar
+                    title={fileObject.name}
+                    percentage={fileReceivedPercentage[fileObject.fileId] || (fileReceivedPercentage[fileObject.fileId] = 0)}
+                    isSelected={fileIndex === selectedFileIndex}
+                    onClickCallback={() => {
+                      updateSelectedFileIndex(fileIndex);
+                    }}
+                    downloadMode={{
+                      enabled: true,
+                      link: fileTransferrer.getFileDownloadLink(fileObject.fileId),
+                      name: fileObject.name
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+          <button className="cancel-button" style={{ background: fileTransferComplete ? "#000cee" : "#f51919" }} onClick={() => {
+            window.location.href = "/";
+          }}>
+            {
+              fileTransferComplete ? "Done" : "Cancel"
+            }
+          </button>
+        </>
+        :
+        <div className="main-container-mobile-1">
+        <div className="mobile-sending-section-1">
+           <div className="mobile-sending-button-1" style={ filesInfo.length > 1 ? {} : { visibility: "hidden", marginTop: "5%", marginBottom: "1%" } }>
+              <button disabled={selectedFileIndex == 0} onClick={() => {
+                updateSelectedFileIndex(selectedFileIndex - 1);
+              }}>Prev.</button>
+              <button disabled={selectedFileIndex + 1 == filesInfo.length} onClick={() => {
+                updateSelectedFileIndex(selectedFileIndex + 1);
+              }}>Next</button>
+           </div>
+          <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} />
+          <div style={{ marginTop: "10%" }}>
+              {
+                <ProgressBar
+                  title={(+fileReceivedPercentage[filesInfo[selectedFileIndex].fileId] || 0) < 100 ? "Receiving..." : "Done"}
+                  percentage={fileReceivedPercentage[filesInfo[selectedFileIndex].fileId] || (fileReceivedPercentage[filesInfo[selectedFileIndex].fileId] = 0)}
+                  isSelected={false}
+                  onClickCallback={() => {}}
+                  styleConfig={{ borderEnabled: true, css: { fontSize: "1rem" } }}
+                />
+              }
+          </div>
+          <div className="main-file-send-cancel" style={{ marginTop: "5%" }}>
+            <button
+              disabled={(+fileReceivedPercentage[filesInfo[selectedFileIndex].fileId] || 0) < 100}
+              onClick={() => {
+                if (!downloadRef) {
+                  return;
+                }
+                downloadRef.current?.click();
+              }}
+            >
+              Download
+            </button>
+            <button
+            style={{ background: fileTransferComplete ? "green" : "red" }}
+              onClick={() => {
+                window.location.href = "/";
+              }}
+            >
+              {
+                fileTransferComplete ? "Done" : "Cancel"
+              }
+            </button>
+            {
+              <a href={`${fileTransferrer.getFileDownloadLink(filesInfo[selectedFileIndex].fileId)}`}
+                download={true}
+                style={{display:"none"}}
+                ref={downloadRef}
+              ></a>
+            }
+          </div>
         </div>
       </div>
-      <button className="cancel-button" style={{ background: fileTransferComplete ? "#000cee" : "#f51919" }} onClick={() => {
-        window.location.href = "/";
-      }}>
-        {
-          fileTransferComplete ? "Done" : "Cancel"
-        }
-      </button>
+      }
       {
-        fileTransferComplete ? <h3 id="userCount">{transmissionBegan ? "Transmission ongoing..." : "Transmission hasn't started yet!"}</h3>
+        !fileTransferComplete ? <h3 id="userCount">{transmissionBegan ? "Transmission ongoing..." : "Transmission hasn't started yet!"}</h3>
         : null
       }
     </div>
