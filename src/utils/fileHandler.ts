@@ -118,15 +118,6 @@ class FileSender {
     };
   }
 
-  // /**
-  //  * This method returns the callback which when called sends a data packet to the sender callback registered.
-  //  * Note: the callback returns true in case the packet was sent and returns false when the transmission is complete!
-  //  * @returns callback
-  //  */
-  // getPacketTransmitter(senderCallback: (data: FilePacket) => void): { transmit: () => Promise<boolean> } {
-  //   return { transmit: () => this.packetSender(senderCallback) };
-  // }
-
   getPacketTransmitter() {
     return this.packetSender;
   }
@@ -182,7 +173,7 @@ class FileTransmissionWrapper {
   private sender = (dataObject: FilePacket) => {};
   private received = (dataObj: { fileId: string | number, blob: Blob }) => {};
 
-  private readonly PACKETS_TO_BE_SENT_PER_SESSION = 100;
+  private readonly PACKETS_TO_BE_SENT_PER_SESSION = 1000;
 
   totalFileCount = 0;
   isMultiFileMode = false;

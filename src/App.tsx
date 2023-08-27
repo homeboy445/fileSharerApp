@@ -10,14 +10,17 @@ import socketIO from "./connections/socketIO";
 import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 import { fileTransferrer } from "./utils/fileHandler";
+import { globalDataContext } from "./contexts/context";
 
 type GenericObject = { [params: string]: any };
 
 const idStore: { [props: string]: any } = {};
-const uniqueUserId = (function(){
+const uniqueUserId = (function () {
   let uuid = uuidv4();
   // The UUID should be loaded from cache only in the case of receiving a file!
-  const cachedUUID = window.location.href.includes("?id=") ? cookieManager.get(CONSTANTS.uniqueIdCookie) : uuid;
+  const cachedUUID = window.location.href.includes("?id=")
+    ? cookieManager.get(CONSTANTS.uniqueIdCookie)
+    : uuid;
   if (cachedUUID) {
     uuid = cachedUUID;
   } else {
@@ -29,21 +32,23 @@ const uniqueUserId = (function(){
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
-  const [messagesToBeDisplayed, updateMessage] = useState<{ message: string; id: string }[]>([]);
+  const [messagesToBeDisplayed, updateMessage] = useState<
+    { message: string; id: string }[]
+  >([]);
   const [socketIoInstance] = useState(socketIO.getSocketInstance());
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
   const [width, setWidth] = useState<number>(window.innerWidth);
 
   const handleWindowSizeChange = () => {
-      setWidth(window.innerWidth);
-  }
+    setWidth(window.innerWidth);
+  };
 
   useEffect(() => {
-      window.addEventListener('resize', handleWindowSizeChange);
-      return () => {
-        window.removeEventListener('resize', handleWindowSizeChange);
-      }
+    window.addEventListener("resize", handleWindowSizeChange);
+    return () => {
+      window.removeEventListener("resize", handleWindowSizeChange);
+    };
   }, []);
 
   const getParamsObject = (): GenericObject => {
@@ -67,8 +72,8 @@ const App = () => {
   const logToUI = (message: string) => {
     const data = { message, id: uuidv4() };
     idStore[data.id] = true;
-    updateMessage([ ...messagesToBeDisplayed, data ]);
-  }
+    updateMessage([...messagesToBeDisplayed, data]);
+  };
 
   const durationCompleteCallback = (id: string) => {
     delete idStore[id];
@@ -79,16 +84,21 @@ const App = () => {
 
   const queueMessagesForReloads = (message: string) => {
     queuedMessages.push(message);
-    localStorage.setItem(CONSTANTS.localStorageQueueMessageKey, JSON.stringify(queuedMessages));
-  }
+    localStorage.setItem(
+      CONSTANTS.localStorageQueueMessageKey,
+      JSON.stringify(queuedMessages)
+    );
+  };
 
   const loadQueueMessagesAndLogThemtoUI = () => {
-    const storedMsgs = localStorage.getItem(CONSTANTS.localStorageQueueMessageKey);
+    const storedMsgs = localStorage.getItem(
+      CONSTANTS.localStorageQueueMessageKey
+    );
     if (storedMsgs) {
       JSON.parse(storedMsgs).forEach((message: string) => logToUI(message));
       localStorage.removeItem(CONSTANTS.localStorageQueueMessageKey);
     }
-  }
+  };
 
   useEffect(() => {
     socketIoInstance.on("error", (data) => {
@@ -123,7 +133,7 @@ const App = () => {
       >
         <div className="topTile">
           <img src={FileCloudIcon} />
-          <h3>FileSharer.io</h3> 
+          <h3>FileSharer.io</h3>
         </div>
         <div className="msg-box-1">
           <h1>Welcome to FileSharer.io!</h1>
@@ -145,7 +155,9 @@ const App = () => {
               ref={fileRef}
               multiple={true}
               onChange={(e) => {
-                fileTransferrer.initiate(Object.values((e as any).target.files));
+                fileTransferrer.initiate(
+                  Object.values((e as any).target.files)
+                );
                 if ((e as any).target.files.length > 0) {
                   toggleDialog(true);
                 }
@@ -167,36 +179,35 @@ const App = () => {
           </div>
         </div>
       </div>
-      {showFileSharerDialog && !queryParams["id"] ? (
-        <FileSenderInterface
-          uniqueId={uniqueUserId}
-          closeDialogBox={function (): void {
-            window.location.href = "/";
-          }}
-          globalUtilStore={{
-            logToUI,
-            queueMessagesForReloads,
-            getUserId: () => uniqueUserId,
-            isDebugMode: () => !!queryParams["debugMode"],
-            isNonDesktopDevice: width < 1000
-          }}
-        />
-      ) : null}
-      {queryParams["id"] ? (
-        <FileRecieverInterface
-          roomId={queryParams["id"] || ""}
-          closeDialogBox={() => {
-            window.location.href = "/";
-          }}
-          globalUtilStore={{
-            logToUI,
-            queueMessagesForReloads,
-            getUserId: () => uniqueUserId,
-            isDebugMode: () => !!queryParams["debugMode"],
-            isNonDesktopDevice: width < 1000
-          }}
-        />
-      ) : null}
+      <globalDataContext.Provider
+        value={{
+          logToUI,
+          queueMessagesForReloads,
+          getUserId: () => uniqueUserId,
+          isDebugMode: () => !!queryParams["debugMode"],
+          isNonDesktopDevice: width < 1000,
+          serverUrl: (process.env.REACT_APP_MODE === "dev"
+          ? CONSTANTS.devServerURL
+          : CONSTANTS.serverURL)
+        }}
+      >
+        {showFileSharerDialog && !queryParams["id"] ? (
+          <FileSenderInterface
+            uniqueId={uniqueUserId}
+            closeDialogBox={function (): void {
+              window.location.href = "/";
+            }}
+          />
+        ) : null}
+        {queryParams["id"] ? (
+          <FileRecieverInterface
+            roomId={queryParams["id"] || ""}
+            closeDialogBox={() => {
+              window.location.href = "/";
+            }}
+          />
+        ) : null}
+      </globalDataContext.Provider>
     </div>
   );
 };

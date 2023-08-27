@@ -20,7 +20,6 @@ const Hoverable = ({ element, text }: { element: any; text: string }) => {
   };
 
   const computedCoordinatesForTip = computeCoordinates();
-  console.log(computedCoordinatesForTip);
   return (
     <div
       className="hoverable"

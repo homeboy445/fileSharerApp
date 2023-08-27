@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import CONSTANTS from "../../consts/index";
 import axios from "axios";
@@ -6,6 +6,7 @@ import { FilePacket, fileTransferrer } from "../../utils/fileHandler";
 import "./FileRecieverInterface.css";
 import socketInstance from "../../connections/socketIO";
 import ProgressBar from "../ProgressBar/ProgressBar";
+import { globalDataContext } from "../../contexts/context";
 
 interface FilePacketAdditional extends FilePacket {
   senderId: string;
@@ -13,22 +14,18 @@ interface FilePacketAdditional extends FilePacket {
 };
 
 type FileInfo = { name: string; type: string; size: number; fileId: number };
+let lastSentPercentage = -1;
 
 const FileRecieverInterface = ({
   roomId,
   closeDialogBox,
-  globalUtilStore,
 }: {
   roomId: string;
   closeDialogBox: () => void;
-  globalUtilStore?: {
-    logToUI: (message: string) => void;
-    queueMessagesForReloads: (message: string) => void;
-    getUserId: () => string;
-    isDebugMode: () => boolean;
-    isNonDesktopDevice: boolean;
-  };
 }) => {
+
+  const globalUtilStore = useContext(globalDataContext);
+
   const localStorageKey = "_fl_sharer_" + roomId;
 
   const downloadRef = useRef<HTMLAnchorElement | null>(null);
@@ -41,6 +38,7 @@ const FileRecieverInterface = ({
   const [uniqueUserId] = useState(globalUtilStore?.getUserId());
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
   const [flag, toggleFlag] = useState<boolean>();
+  const [fileTransferComplete, updateFileTransferStatus] = useState(false);
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -62,15 +60,13 @@ const FileRecieverInterface = ({
     }
     axios
       .post(
-        (process.env.REACT_APP_MODE === "dev"
-          ? CONSTANTS.devServerURL
-          : CONSTANTS.serverURL) + "/isValidRoom",
+        globalUtilStore.serverUrl + "/isValidRoom",
         {
           roomId: roomId,
         }
       )
       .then(({ data }: { data: { status: boolean; filesInfo: FileInfo[] } }) => {
-        if (!data.status) {
+        if (!data.status || Object.keys(data?.filesInfo || {}).length == 0) {
           globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
           window.location.href = "/";
         }
@@ -119,17 +115,23 @@ const FileRecieverInterface = ({
         if (!transmissionBegan) {
           updateTransmissionStatus(true);
         }
+        if (data.percentageCompleted == 100) {
+          updateFileTransferStatus(isFileTransferComplete());
+        }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-        socketIO.emit("acknowledge", {
-          // For the time being only sending the acknowledgement packet in intervals of 5 - so as to reduce network congestion;
-          roomId: roomId,
-          percentage: data.percentageCompleted,
-          packetId: data.packetId,
-          userId: uniqueUserId,
-          senderId: data.senderId,
-          fileId: data.uniqueID
-        });
+        if (lastSentPercentage != data.percentageCompleted) {
+          console.log("I AM HERE!");
+          lastSentPercentage = data.percentageCompleted;
+          socketIO.emit("acknowledge", {
+            roomId: roomId,
+            percentage: data.percentageCompleted,
+            packetId: data.packetId,
+            userId: uniqueUserId,
+            senderId: data.senderId,
+            fileId: data.uniqueID
+          });
+        }
       }
     );
     socketIO.on("roomInvalidated", () => {
@@ -153,8 +155,7 @@ const FileRecieverInterface = ({
     };
   }, [flag]); // TODO: Study this phenomenon where removing this variable from this dependency array - the above socket callback was getting old values, I think it has something to do with the fact that on each state change I guess the whole function component reference is changed I think;
 
-  const fileTransferComplete = isFileTransferComplete();
-  console.log("$$ ", fileTransferComplete, " ", selectedFileIndex, " ", filesInfo.length);
+  // console.log("$$ ", fileTransferComplete, " ", selectedFileIndex, " ", filesInfo.length);
 
   return (
     <div className="main-parent">

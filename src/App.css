@@ -291,7 +291,7 @@
     position: absolute;
     width: 96%;
     min-height: 100vh;
-    top: 50%;
+    top: 49.5%;
     left: 50%;
     transform: translate(-50%, -49%);
     display: flex;
