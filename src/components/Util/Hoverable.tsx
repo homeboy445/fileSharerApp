@@ -3,9 +3,23 @@ import "./Hoverable.css";
 
 const Hoverable = ({ element, text }: { element: any; text: string }) => {
   const [isHovering, toggleHover] = useState(false);
-  const ref = useRef(null);
-  const getBoundRect = ref.current !== null ? (ref.current as any).getBoundingClientRect() : {};
+  const ref = useRef<HTMLDivElement | null>(null);
 
+  const computeCoordinates = () => {
+    if (ref == null) {
+      return null;
+    }
+    const boundRecForElement = ref.current?.getBoundingClientRect();
+    const elementParentBoundRect = ref.current?.parentElement?.getBoundingClientRect();
+    if (!boundRecForElement || !elementParentBoundRect) {
+      return null;
+    }
+    return {
+      left: Math.abs(boundRecForElement.left - elementParentBoundRect.left)
+    };
+  };
+
+  const computedCoordinatesForTip = computeCoordinates();
   return (
     <div
       className="hoverable"
@@ -22,13 +36,10 @@ const Hoverable = ({ element, text }: { element: any; text: string }) => {
         className="tooltip"
         style={{
           transform: isHovering ? "scale(1)" : "scale(0)",
-          ...(ref.current != null
+          ...(computedCoordinatesForTip != null
             ? {
-                top:
-                  Math.round(getBoundRect.top + 100) +
-                  "px",
                 left:
-                  Math.round(getBoundRect.left - 200) +
+                  computedCoordinatesForTip.left +
                   "px",
               }
             : {}),

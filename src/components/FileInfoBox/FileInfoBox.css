@@ -9,12 +9,9 @@
     padding: 2%;
 }
 
-.main-file-info-bx > h2 {
-    font-size: 2rem;
-}
-
 .main-file-info-bx > img {
-    width: 30%;
+    width: 50%;
+    margin: 4%;
 }
 
 .main-file-info-bx > table {
@@ -24,53 +21,40 @@
     border-collapse: collapse;
 }
 
-.main-file-info-bx > table > tr {
+.main-file-info-bx > table > tbody > tr {
     font-size: 1.5rem;
 }
 
-.main-file-info-bx > table > tr > td:nth-child(1) {
+.main-file-info-bx > table > tbody > tr > td:nth-child(1) {
     font-weight: 400;
     white-space: nowrap;
     width: 25%;
 }
 
-.main-file-info-bx > table > tr > td:nth-child(2) {
+.main-file-info-bx > table > tbody > tr > td:nth-child(2) {
     font-weight: 300;
     text-overflow: ellipsis;
     overflow: hidden;
 }
 
-
-@media only screen and (max-width: 300px) {
-    .main-file-info-bx {
-        width: 50%;
-        margin-top: 22%;
-        padding: 2%;
-    }
-    .main-file-info-bx > h2 {
-        font-size: 1.1rem;
-    }
-}
-
 @media only screen and (max-width: 600px) {
-    .main-file-info-bx {
-        margin: 5%;
-        width: 60%;
-    }
-    .main-file-info-bx > table > tr {
+    .main-file-info-bx > table > tbody > tr {
         font-size: 1rem;
     }
 }
 
 
 @media only screen and (max-width: 800px) {
-    .main-file-info-bx > table > tr {
+    .main-file-info-bx > table > tbody > tr {
         font-size: 1.2rem;
     }
 }
 
 @media only screen and (max-width: 1000px) {
-    .main-file-info-bx > table > tr > td:nth-child(1) {
+    .main-file-info-bx {
+        width: 95%;
+    }
+    .main-file-info-bx > table > tbody > tr > td:nth-child(1) {
         white-space: inherit;
     }
 }

@@ -6,6 +6,7 @@
     justify-content: center;
     align-items: center;
     transition: 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+    margin: 1%;
 }
 
 .main-file-link-handle {
@@ -172,3 +173,103 @@ h1#elapsedTime {
     }
 }
 
+
+.main-container-mobile-1 {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+@media only screen and (max-width: 1000px) {
+  .main-file-link-handle {
+    width: 90%;
+  }
+  #userCount {
+    font-size: 1rem;
+    font-weight: 400;
+    border: 1px solid red;
+    padding: 2%;
+    border-radius: 4px;
+    align-self: center;
+    text-align: center;
+    width: 90%;
+    margin-top: 0%;
+  }
+  .main-file-send-cancel {
+    justify-content: center;
+    width: 100%;
+    transform: scale(0.8);
+  }
+  .main-file-send-cancel > button {
+    margin-right: 4%;
+  }
+  .mobile-sending-section-1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+  }
+  .mobile-sending-button-1 {
+    display: flex;
+    width: 90%;
+    justify-content: space-between;
+    align-self: center;
+    margin-top: 10%;
+  }
+  /* CSS */
+  .mobile-sending-button-1 > button {
+    background-color: #0095ff;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    box-shadow: rgba(255, 255, 255, .4) 0 1px 0 0 inset;
+    box-sizing: border-box;
+    color: #fff;
+    cursor: pointer;
+    display: inline-block;
+    font-family: -apple-system,system-ui,"Segoe UI","Liberation Sans",sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.15385;
+    margin: 0;
+    outline: none;
+    padding: 8px .8em;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+
+  .mobile-sending-button-1 > button:hover,
+  .mobile-sending-button-1 > button:focus {
+    background-color: #07c;
+  }
+
+  .mobile-sending-button-1 > button:focus {
+    box-shadow: 0 0 0 4px rgba(0, 149, 255, .15);
+  }
+
+  .mobile-sending-button-1 > button:active {
+    background-color: #0064bd;
+    box-shadow: none;
+  }
+  .mobile-sending-button-1 > button:disabled {
+    background-color: #87c4fd;
+    pointer-events: none;
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  .mobile-sending-button-1 {
+    margin-top: 0%;
+    margin-bottom: 10%;
+  }
+  #userCount {
+    margin-top: -3%;
+  }
+}
