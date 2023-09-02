@@ -35,7 +35,6 @@ class FileHandlerUtil {
   }
 }
 
-
 export enum FileTransmissionEnum {
   SEND = "fl_send",
   RECEIVE = "fl_receive"
@@ -66,12 +65,34 @@ class FileSender {
 
   private packetSender: AsyncGenerator<FilePacket, void, unknown>;
 
+  public idealPacketSize: number;
+
   constructor(file: any) {
     this.fileObject = file;
     this.ALLOWED_PAYLOAD_SIZE = 1024 * 100;
     this.totalPackets = Math.ceil(this.fileObject.size / this.ALLOWED_PAYLOAD_SIZE); 
     this.uniqueID = Math.round((Date.now() / 100000) + Math.round(Math.random() * 100000));
     this.packetSender = this.getDataTransmissionIteratorCaller();
+    this.idealPacketSize = this.calculatePacketsToBeSent();
+  }
+
+  private calculatePacketsToBeSent(): number {
+    const fileSize = this.fileObject.size;
+    const num = this.ALLOWED_PAYLOAD_SIZE / fileSize;
+    let start = 0, end = fileSize;
+    while (start < end) { // Using binary search to find the number dividing which by the fileSize will yield 1 (by flooring...);
+      const mid = (end - start) / 2;
+      const percentage = Math.floor(num * mid);
+      if (percentage === 1) {
+        return Math.ceil(mid);
+      }
+      if (percentage < 0) {
+        return Math.ceil(mid) + 100;
+      } else {
+        end = mid - 1;
+      }
+    }
+    return 100;
   }
 
   private getDataTransmissionIteratorCaller() {
@@ -85,6 +106,7 @@ class FileSender {
         pId++
       ) {
         const fileChunk = _this.fileObject.slice(start, end);
+        // TODO: implement a basic encryption/decryption logic!
         const fileChunkArrayBuffer = FileHandlerUtil.compressPacket(await fileChunk.arrayBuffer());
         start = end;
         end = Math.min(end + _this.ALLOWED_PAYLOAD_SIZE, _this.fileObject.size);
@@ -173,7 +195,7 @@ class FileTransmissionWrapper {
   private sender = (dataObject: FilePacket) => {};
   private received = (dataObj: { fileId: string | number, blob: Blob }) => {};
 
-  private readonly PACKETS_TO_BE_SENT_PER_SESSION = 1000;
+  private readonly PACKETS_TO_BE_SENT_PER_SESSION = 100;
 
   totalFileCount = 0;
   isMultiFileMode = false;
@@ -215,7 +237,7 @@ class FileTransmissionWrapper {
   async send() { // TODO: Add support for timeout!
     for (let idx = 0; idx < this.files.length; idx++) {
       let shouldContinue = false;
-      for (let packets = 0; packets < this.PACKETS_TO_BE_SENT_PER_SESSION; packets++) {
+      for (let packets = 0; packets < Math.max(this.PACKETS_TO_BE_SENT_PER_SESSION, this.files[idx].idealPacketSize); packets++) {
         const { value, done } = await this.packetTransmitters[this.files[idx].getId()].next();
         if (value) {
           this.sender(value);

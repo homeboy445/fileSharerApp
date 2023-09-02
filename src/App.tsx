@@ -204,9 +204,6 @@ const App = () => {
         {queryParams["id"] ? (
           <FileRecieverInterface
             roomId={queryParams["id"] || ""}
-            closeDialogBox={() => {
-              window.location.href = "/";
-            }}
           />
         ) : null}
       </globalDataContext.Provider>

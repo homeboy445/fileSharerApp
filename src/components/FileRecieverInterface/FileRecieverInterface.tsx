@@ -14,14 +14,11 @@ interface FilePacketAdditional extends FilePacket {
 };
 
 type FileInfo = { name: string; type: string; size: number; fileId: number };
-let lastSentPercentage = -1;
 
 const FileRecieverInterface = ({
   roomId,
-  closeDialogBox,
 }: {
   roomId: string;
-  closeDialogBox: () => void;
 }) => {
 
   const globalUtilStore = useContext(globalDataContext);
@@ -39,6 +36,7 @@ const FileRecieverInterface = ({
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
   const [flag, toggleFlag] = useState<boolean>();
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
+  const lastSentPercentage: { [id: number]: number } = {};
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -120,9 +118,8 @@ const FileRecieverInterface = ({
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-        if (lastSentPercentage != data.percentageCompleted) {
-          console.log("I AM HERE!");
-          lastSentPercentage = data.percentageCompleted;
+        if (lastSentPercentage[data.uniqueID] != data.percentageCompleted) {
+          lastSentPercentage[data.uniqueID] = data.percentageCompleted;
           socketIO.emit("acknowledge", {
             roomId: roomId,
             percentage: data.percentageCompleted,

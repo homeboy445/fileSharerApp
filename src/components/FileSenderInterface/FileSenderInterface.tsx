@@ -14,10 +14,8 @@ import { eventBus } from "../../utils/events";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import { apiWrapper } from "../../utils/util";
 import { globalDataContext } from "../../contexts/context";
-import axios from "axios";
 
 let timerInterval: NodeJS.Timer | null = null;
-let packetAcknowledgementTimeout: NodeJS.Timeout | null = null;
 const FileSenderInterface = ({
   uniqueId,
   closeDialogBox,
@@ -220,16 +218,6 @@ const FileSenderInterface = ({
           percentage: data.percentage,
           userId: data.userId,
         });
-        packetAcknowledgementTimeout && clearTimeout(packetAcknowledgementTimeout);
-        packetAcknowledgementTimeout = setTimeout(() => {
-          console.log("Checking status manually!");
-          axios.get(`${globalUtilStore.serverUrl}/manualStateCheck?roomId=${uniqueId}&fileId=${data.fileId}`)
-          .then((response) => {
-            console.log("RECEIVED THE RESPONSE: ", response);
-          }).catch((e) => {
-            console.error(e);
-          });
-        }, 5000);
       }
     );
     eventBus.on(FileTransmissionEnum.SEND, async () => {
