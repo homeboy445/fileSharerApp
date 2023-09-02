@@ -111,6 +111,7 @@ const App = () => {
     };
   }, []);
 
+  const isNonDesktopDevice = width < 1000;
   return (
     <div>
       {messagesToBeDisplayed.map((messageObj, index) => {
@@ -126,6 +127,7 @@ const App = () => {
       <div
         className="container"
         style={{
+          display: isNonDesktopDevice && (showFileSharerDialog || queryParams["id"]) ? "none" : "flex",
           opacity: showFileSharerDialog ? "0.4" : "1",
           pointerEvents: showFileSharerDialog ? "none" : "all",
           backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
@@ -185,7 +187,7 @@ const App = () => {
           queueMessagesForReloads,
           getUserId: () => uniqueUserId,
           isDebugMode: () => !!queryParams["debugMode"],
-          isNonDesktopDevice: width < 1000,
+          isNonDesktopDevice,
           serverUrl: (process.env.REACT_APP_MODE === "dev"
           ? CONSTANTS.devServerURL
           : CONSTANTS.serverURL)

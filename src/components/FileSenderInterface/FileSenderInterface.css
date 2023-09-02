@@ -216,7 +216,7 @@ h1#elapsedTime {
     width: 90%;
     justify-content: space-between;
     align-self: center;
-    margin-top: 10%;
+    /* margin-top: 10%; */
   }
   /* CSS */
   .mobile-sending-button-1 > button {
@@ -265,10 +265,10 @@ h1#elapsedTime {
 }
 
 @media only screen and (max-width: 800px) {
-  .mobile-sending-button-1 {
+  /* .mobile-sending-button-1 {
     margin-top: 0%;
     margin-bottom: 10%;
-  }
+  } */
   #userCount {
     margin-top: -3%;
   }
