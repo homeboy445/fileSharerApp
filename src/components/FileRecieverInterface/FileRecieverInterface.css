@@ -49,10 +49,26 @@
   box-shadow: rgba(0, 0, 0, .2) 0 1px 1px -3px, rgba(0, 0, 0, .14) 0 2px 5px 1px, rgba(0, 0, 0, .12) 0 1px 7px 0px;
 }
 
+.main-container-mobile-1 {
+  transform: scale(1);
+}
+
 @media only screen and (max-width: 1000px) {
   .cancel-button {
     margin-left: 0;
     margin-top: -10%;
+  }
+}
+
+@media only screen and (max-height: 800px) {
+  .main-container-mobile-1 {
+    transform: scale(0.9);
+  }
+}
+
+@media only screen and (max-height: 600px) {
+  .main-container-mobile-1 {
+    transform: scale(0.8);
   }
 }
 

@@ -148,7 +148,7 @@ const FileSenderInterface = ({
         <button
           style={{ background: fileTransferComplete ? "green" : "red" }}
           onClick={() => {
-            socketIO.emit("deleteRoom", { roomId: uniqueId });
+            socketIO.emit("deleteRoom", { roomId: uniqueId, info: { fileTransferComplete } });
             closeDialogBox();
           }}
         >

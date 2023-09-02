@@ -131,8 +131,8 @@ const FileRecieverInterface = ({
         }
       }
     );
-    socketIO.on("roomInvalidated", () => {
-      if (isFileTransferComplete()) {
+    socketIO.on("roomInvalidated", (data) => {
+      if (!(data.fileTransferComplete || isFileTransferComplete())) {
         // In case the transfer is not complete, then it makes sense to just reload!
         globalUtilStore?.queueMessagesForReloads(
           "Sender aborted the file transfer!"
