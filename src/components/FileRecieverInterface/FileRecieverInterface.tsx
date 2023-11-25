@@ -116,13 +116,15 @@ const FileRecieverInterface = ({
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-          socketIO.emit("acknowledge", {
+          socketIO.timeout(2000).emit("acknowledge", {
             roomId: roomId,
             percentage: data.percentageCompleted,
             packetId: data.packetId,
             userId: uniqueUserId,
             senderId: data.senderId,
             fileId: data.uniqueID
+          }, () => {
+            globalUtilStore.logToUI("Server failed to ack packet!");
           });
       }
     );

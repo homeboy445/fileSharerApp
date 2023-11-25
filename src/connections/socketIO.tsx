@@ -13,8 +13,9 @@ class socket {
     }
     initialize(params: { uuid: string }) {
         this.socketIO = io(process.env.REACT_APP_MODE === "dev" ? CONSTANTS.devServerURL : CONSTANTS.serverURL, {
-            query: params
+            query: params,
         });
+        // (window as any).socketIO = this.socketIO;
     }
     getSocketInstance() {
         if (this.socketIO === null) {

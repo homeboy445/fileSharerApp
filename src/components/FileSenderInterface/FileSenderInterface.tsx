@@ -170,9 +170,11 @@ const FileSenderInterface = ({
         return;
       }
       // console.log('sending packet for file: ', dataObject.fileName, " ", dataObject.isProcessing, " ", dataObject.percentageCompleted);
-      socketIO.emit("sendFile", {
+      socketIO.timeout(5000).emit("sendFile", {
         ...dataObject,
         roomId: uniqueId,
+      }, () => {
+        globalUtilStore.logToUI("Server failed to ack packet!");
       });
     });
     socketIO.on("connect", () => {
