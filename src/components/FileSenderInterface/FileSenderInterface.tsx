@@ -161,7 +161,7 @@ const FileSenderInterface = ({
   useEffect(() => {
     if (fileTransferrer.doesAnyFileExceedFileSizeLimit) {
       globalUtilStore?.queueMessagesForReloads(
-        "Only 1.5Gb of data transfer is permitted currently!"
+        "Only 200Mb of data transfer is permitted currently!"
       );
       window.location.href = "/";
     }
@@ -195,7 +195,8 @@ const FileSenderInterface = ({
           // console.log("updating current selected user!");
           users[data.userId] = true;
         }
-        if (Object.keys(users).length == 0 && didFileTransferStart) {
+        if (Object.keys(users).length === 0 && didFileTransferStart) {
+          globalUtilStore.queueMessagesForReloads("Everyone left!");
           window.location.href = "/"; // exit if everybody left while file transfer was in progress!
         }
         updateUserStore(users);

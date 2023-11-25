@@ -40,7 +40,7 @@ export enum FileTransmissionEnum {
   RECEIVE = "fl_receive"
 };
 
-const FileSizeLimit = 1024 * 1024 * 1624; // roughly 1.6GB
+const FileSizeLimit = 1024 * 1024 * 200; // roughly 200Mb
 
 export type FilePacket = {
   fileChunkArrayBuffer: Uint8Array;
@@ -69,11 +69,11 @@ class FileSender {
 
   constructor(file: any) {
     this.fileObject = file;
-    this.ALLOWED_PAYLOAD_SIZE = 1024 * 100;
+    this.ALLOWED_PAYLOAD_SIZE = 1024 * 100 * 5;
     this.totalPackets = Math.ceil(this.fileObject.size / this.ALLOWED_PAYLOAD_SIZE); 
     this.uniqueID = Math.round((Date.now() / 100000) + Math.round(Math.random() * 100000));
     this.packetSender = this.getDataTransmissionIteratorCaller();
-    this.idealPacketSize = this.calculatePacketsToBeSent();
+    this.idealPacketSize = 10 || this.calculatePacketsToBeSent();
   }
 
   private calculatePacketsToBeSent(): number {
@@ -172,7 +172,7 @@ class FileReciever {
 
   public processReceivedChunk(dataPacket: FilePacket) {
     // the callback will receive the blob file;
-    const { fileChunkArrayBuffer, isProcessing, fileType, fileName } = dataPacket;
+    const { fileChunkArrayBuffer, isProcessing, fileType } = dataPacket;
     this.appendToBlob(FileHandlerUtil.uncompressPacket(fileChunkArrayBuffer), fileType);
     if (isProcessing) {
       return false;
@@ -208,7 +208,7 @@ class FileTransmissionWrapper {
       const fileSenderObject = (new FileSender(file));
       this.packetTransmitters[fileSenderObject.getId()] = fileSenderObject.getPacketTransmitter();
       return fileSenderObject;
-    }).bind(this)).sort((f1, f2) => {
+    })).sort((f1, f2) => {
       return f1.getFileInfo().size < f2.getFileInfo().size ? -1 : 1;
     });
     this.totalFileCount = this.files.length;
@@ -237,7 +237,7 @@ class FileTransmissionWrapper {
   async send() { // TODO: Add support for timeout!
     for (let idx = 0; idx < this.files.length; idx++) {
       let shouldContinue = false;
-      for (let packets = 0; packets < Math.max(this.PACKETS_TO_BE_SENT_PER_SESSION, this.files[idx].idealPacketSize); packets++) {
+      for (let packets = 0; packets < 10/**Math.max(this.PACKETS_TO_BE_SENT_PER_SESSION, this.files[idx].idealPacketSize) */; packets++) {
         const { value, done } = await this.packetTransmitters[this.files[idx].getId()].next();
         if (value) {
           this.sender(value);

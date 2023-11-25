@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
-import CONSTANTS from "../../consts/index";
 import axios from "axios";
 import { FilePacket, fileTransferrer } from "../../utils/fileHandler";
 import "./FileRecieverInterface.css";
@@ -157,6 +156,10 @@ const FileRecieverInterface = ({
   return (
     <div className="main-parent">
       {
+        !fileTransferComplete ? <h3 id="userCount">{transmissionBegan ? "Transmission ongoing..." : "Transmission hasn't started yet!"}</h3>
+        : null
+      }
+      {
         !globalUtilStore?.isNonDesktopDevice
         ?
         <>
@@ -248,10 +251,6 @@ const FileRecieverInterface = ({
           </div>
         </div>
       </div>
-      }
-      {
-        !fileTransferComplete ? <h3 id="userCount">{transmissionBegan ? "Transmission ongoing..." : "Transmission hasn't started yet!"}</h3>
-        : null
       }
     </div>
   );
