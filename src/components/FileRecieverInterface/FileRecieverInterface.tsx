@@ -124,7 +124,7 @@ const FileRecieverInterface = ({
             senderId: data.senderId,
             fileId: data.uniqueID
           }, () => {
-            globalUtilStore.logToUI("Server failed to ack packet!");
+            // globalUtilStore.logToUI("Server failed to ack packet!");
           });
       }
     );

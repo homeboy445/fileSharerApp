@@ -174,7 +174,7 @@ const FileSenderInterface = ({
         ...dataObject,
         roomId: uniqueId,
       }, () => {
-        globalUtilStore.logToUI("Server failed to ack packet!");
+        // globalUtilStore.logToUI("Server failed to ack packet!");
       });
     });
     socketIO.on("connect", () => {
