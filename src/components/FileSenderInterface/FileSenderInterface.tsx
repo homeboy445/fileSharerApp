@@ -105,7 +105,7 @@ const FileSenderInterface = ({
     }
     updatePercentage(percentageStore);
     forceUpdateState();
-    if (percentage == 100) {
+    if (percentage === 100) {
       reloadIfFileSendingDone();
     }
   };

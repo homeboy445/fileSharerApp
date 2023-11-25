@@ -35,7 +35,6 @@ const FileRecieverInterface = ({
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
   const [flag, toggleFlag] = useState<boolean>();
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
-  const lastSentPercentage: { [id: number]: number } = {};
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -112,13 +111,11 @@ const FileRecieverInterface = ({
         if (!transmissionBegan) {
           updateTransmissionStatus(true);
         }
-        if (data.percentageCompleted == 100) {
+        if (data.percentageCompleted === 100) {
           updateFileTransferStatus(isFileTransferComplete());
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-        if (lastSentPercentage[data.uniqueID] != data.percentageCompleted) {
-          lastSentPercentage[data.uniqueID] = data.percentageCompleted;
           socketIO.emit("acknowledge", {
             roomId: roomId,
             percentage: data.percentageCompleted,
@@ -127,7 +124,6 @@ const FileRecieverInterface = ({
             senderId: data.senderId,
             fileId: data.uniqueID
           });
-        }
       }
     );
     socketIO.on("roomInvalidated", (data) => {
@@ -242,6 +238,7 @@ const FileRecieverInterface = ({
               }
             </button>
             {
+              // eslint-disable-next-line jsx-a11y/anchor-has-content
               <a href={`${fileTransferrer.getFileDownloadLink(filesInfo[selectedFileIndex].fileId)}`}
                 download={true}
                 style={{display:"none"}}
