@@ -156,7 +156,7 @@ const App = () => {
               type="file"
               ref={fileRef}
               multiple={true}
-              onChange={(e) => {
+              onChange={(e: any) => {
                 fileTransferrer.initiate(
                   Object.values((e as any).target.files)
                 );

@@ -52,6 +52,7 @@ const FileSenderInterface = ({
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
   const [elapsedTime, updateElapsedTime] = useState<number>(0);
   const [flag, toggleFlag] = useState(false);
+  const sessionTimeout = useRef<NodeJS.Timeout[]>([]);
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -122,6 +123,7 @@ const FileSenderInterface = ({
           // globalUtilStore?.queueMessagesForReloads("File transfer successful!");
           socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
           cookieManager.delete(CONSTANTS.uniqueIdCookie);
+          socketIO.disconnect();
           window.location.href = "/";
         },
         1000 * 15,
@@ -163,6 +165,7 @@ const FileSenderInterface = ({
       globalUtilStore?.queueMessagesForReloads(
         "Only 200Mb of data transfer is permitted currently!"
       );
+      socketIO.disconnect();
       window.location.href = "/";
     }
     fileTransferrer.registerSenderCallback((dataObject: FilePacket) => {
@@ -170,11 +173,9 @@ const FileSenderInterface = ({
         return;
       }
       // console.log('sending packet for file: ', dataObject.fileName, " ", dataObject.isProcessing, " ", dataObject.percentageCompleted);
-      socketIO.timeout(5000).emit("sendFile", {
+      socketIO.emit("sendFile", {
         ...dataObject,
         roomId: uniqueId,
-      }, () => {
-        // globalUtilStore.logToUI("Server failed to ack packet!");
       });
     });
     socketIO.on("connect", () => {
@@ -199,6 +200,7 @@ const FileSenderInterface = ({
         }
         if (Object.keys(users).length === 0 && didFileTransferStart) {
           globalUtilStore.queueMessagesForReloads("Everyone left!");
+          socketIO.disconnect();
           window.location.href = "/"; // exit if everybody left while file transfer was in progress!
         }
         updateUserStore(users);
@@ -226,8 +228,20 @@ const FileSenderInterface = ({
     eventBus.on(FileTransmissionEnum.SEND, async () => {
       !didFileTransferStart && toggleFileTransferState(true);
       await fileTransferrer.send();
+      const timeOut = setTimeout(() => {
+        globalUtilStore.queueMessagesForReloads("Session timedout!");
+        socketIO.disconnect();
+        window.location.href = "/";
+      }, 5000);
+      sessionTimeout.current.push(timeOut);
     });
     eventBus.on(FileTransmissionEnum.RECEIVE, () => {
+      if (sessionTimeout.current.length > 0) {
+        sessionTimeout.current.forEach(timeOut => {
+          clearTimeout(timeOut);
+        });
+        sessionTimeout.current = [];
+      }
       eventBus.trigger(FileTransmissionEnum.SEND);
     });
     return () => {

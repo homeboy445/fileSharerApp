@@ -97,7 +97,7 @@ class FileSender {
 
   private getDataTransmissionIteratorCaller() {
     const _this = this;
-    async function *iterateAndSendData() {
+    async function *iterateAndSendData() { // TODO: Consider using browser's inbuilt ReadableStream and WritableStream!
       for (
         let start = 0,
           end = Math.min(_this.ALLOWED_PAYLOAD_SIZE, _this.fileObject.size),
@@ -237,7 +237,7 @@ class FileTransmissionWrapper {
   async send() { // TODO: Add support for timeout!
     for (let idx = 0; idx < this.files.length; idx++) {
       let shouldContinue = false;
-      for (let packets = 0; packets < 10/**Math.max(this.PACKETS_TO_BE_SENT_PER_SESSION, this.files[idx].idealPacketSize) */; packets++) {
+      for (let packets = 0; packets < 5/**Math.max(this.PACKETS_TO_BE_SENT_PER_SESSION, this.files[idx].idealPacketSize) */; packets++) {
         const { value, done } = await this.packetTransmitters[this.files[idx].getId()].next();
         if (value) {
           this.sender(value);
