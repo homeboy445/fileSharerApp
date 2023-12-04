@@ -32,9 +32,7 @@
   touch-action: manipulation;
   vertical-align: middle;
   will-change: transform,opacity;
-  margin-left: 25%;
-  margin-top: -5%;
-  margin-bottom: 5%;
+  margin-bottom: 2%;
 }
 
 .cancel-button:hover {

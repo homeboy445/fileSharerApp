@@ -67,7 +67,6 @@ const FileRecieverInterface = ({
           globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
           window.location.href = "/";
         }
-        console.log("room data: ", data);
         updateFilesInfo(data.filesInfo);
         forceStateUpdate();
       })

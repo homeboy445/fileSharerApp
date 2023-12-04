@@ -116,8 +116,7 @@
   justify-content: center;
   align-items: center;
   box-shadow: rgba(255, 255, 255, 0.1) 0px 1px 1px 0px inset, rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
-  padding: 2%;
-  width: 60%;
+  width: 70%;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -52%);
@@ -129,7 +128,7 @@
   display: flex;
   justify-content: space-between;
   align-items: space-between;
-  padding: 5%;
+  padding: 3%;
 }
 
 #choose-file {
@@ -297,6 +296,6 @@
     display: flex;
     box-shadow: none;
     flex-direction: column;
-    justify-content: space-around;
+    /* justify-content: space-around; */
   }
 }
