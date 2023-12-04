@@ -35,6 +35,7 @@ const FileRecieverInterface = ({
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
   const [flag, toggleFlag] = useState<boolean>();
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
+  const sessionTimeouts = useRef<NodeJS.Timeout[]>([]);
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -98,7 +99,7 @@ const FileRecieverInterface = ({
   }
 
   useEffect(() => {
-    if (filesInfo.length == 1 && !filesInfo[0].name) {
+    if (filesInfo.length === 1 && !filesInfo[0].name) {
       checkIfRoomValid();
     }
     if (!joinedRoom) {
@@ -108,6 +109,8 @@ const FileRecieverInterface = ({
     socketIO.on(
       "recieveFile",
       async (data: FilePacketAdditional) => {
+        sessionTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+        sessionTimeouts.current = [];
         if (!transmissionBegan) {
           updateTransmissionStatus(true);
         }
@@ -116,7 +119,7 @@ const FileRecieverInterface = ({
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-          socketIO.timeout(2000).emit("acknowledge", {
+          socketIO.emit("acknowledge", {
             roomId: roomId,
             percentage: data.percentageCompleted,
             packetId: data.packetId,
@@ -126,6 +129,11 @@ const FileRecieverInterface = ({
           }, () => {
             // globalUtilStore.logToUI("Server failed to ack packet!");
           });
+        sessionTimeouts.current.push(setTimeout(() => {
+          globalUtilStore.queueMessagesForReloads("Session timedout!");
+          socketIO.disconnect();
+          window.location.href = "/";
+        }, 15000));
       }
     );
     socketIO.on("roomInvalidated", (data) => {

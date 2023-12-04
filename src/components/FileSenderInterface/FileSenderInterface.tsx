@@ -232,7 +232,7 @@ const FileSenderInterface = ({
         globalUtilStore.queueMessagesForReloads("Session timedout!");
         socketIO.disconnect();
         window.location.href = "/";
-      }, 5000);
+      }, 15000);
       sessionTimeout.current.push(timeOut);
     });
     eventBus.on(FileTransmissionEnum.RECEIVE, () => {
