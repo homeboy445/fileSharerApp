@@ -116,6 +116,12 @@ const FileRecieverInterface = ({
         }
         if (data.percentageCompleted === 100) {
           updateFileTransferStatus(isFileTransferComplete());
+        } else {
+          sessionTimeouts.current.push(setTimeout(() => {
+            globalUtilStore.queueMessagesForReloads("Session timedout!");
+            socketIO.disconnect();
+            window.location.href = "/";
+          }, 15000));
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
@@ -129,11 +135,6 @@ const FileRecieverInterface = ({
           }, () => {
             // globalUtilStore.logToUI("Server failed to ack packet!");
           });
-        sessionTimeouts.current.push(setTimeout(() => {
-          globalUtilStore.queueMessagesForReloads("Session timedout!");
-          socketIO.disconnect();
-          window.location.href = "/";
-        }, 15000));
       }
     );
     socketIO.on("roomInvalidated", (data) => {
