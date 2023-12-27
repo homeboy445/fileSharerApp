@@ -15,7 +15,7 @@ const ProgressBar = ({
   percentage: number;
   onClickCallback: () => void;
   isSelected: boolean;
-  downloadMode?: { enabled: boolean; link: string | null; name: string }
+  downloadMode?: { enabled: boolean; link: string | undefined | null; name: string }
   styleConfig?: { progressBar?: { color: string; }, borderEnabled?: boolean, css?: Record<string, string | number> }
 }) => {
 
@@ -44,6 +44,7 @@ const ProgressBar = ({
       className="progress-bar-main"
       onClick={onClickCallback}
       style={{ border: styleConfig?.borderEnabled ? `2px solid ${isSelected ? progressBarColor : "black"}` : "none" }}
+      key={v4()}
     >
       <div className="progress-title" style={(styleConfig?.css || {})}>
         <p style={{ color: `${isSelected ? progressBarColor : "black"}` }}>

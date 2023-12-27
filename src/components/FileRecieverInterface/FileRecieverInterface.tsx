@@ -1,18 +1,15 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import FileInfoBox from "../FileInfoBox/FileInfoBox";
 import axios from "axios";
-import { FilePacket, fileTransferrer } from "../../utils/fileHandler";
+import { FilePacketAdditional, fileTransferrer, p2pFilePacket } from "../../utils/fileHandler";
 import "./FileRecieverInterface.css";
 import socketInstance from "../../connections/socketIO";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import { globalDataContext } from "../../contexts/context";
+import p2pManager, { P2PEvents } from "../../utils/p2pManager";
+import fileTransferFacilitator from "../../transferModes";
 
-interface FilePacketAdditional extends FilePacket {
-  senderId: string;
-  roomId: string;
-};
-
-type FileInfo = { name: string; type: string; size: number; fileId: number };
+type FileInfo = { name: string; type: string; size: number; fileId: number; link?: string; };
 
 const FileRecieverInterface = ({
   roomId,
@@ -29,7 +26,7 @@ const FileRecieverInterface = ({
   const [joinedRoom, updateRoomState] = useState(false);
   const [socketIO] = useState(socketInstance.getSocketInstance());
   const [fileReceivedPercentage, updateFilePercentage] = useState<{ [fileId: string]: number }>({});
-  const [filesInfo, updateFilesInfo] = useState<FileInfo[]>([{ name: "", type: "", size: 0, fileId: -1 }]);
+  const [filesInfo, updateFilesInfo] = useState<FileInfo[]>([{ name: "", type: "", size: 0, fileId: -1, link: "" }]);
   const [selectedFileIndex, updateSelectedFileIndex] = useState(0);
   const [uniqueUserId] = useState(globalUtilStore?.getUserId());
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
@@ -50,7 +47,8 @@ const FileRecieverInterface = ({
   }
 
   const checkIfRoomValid = () => {
-    if (localStorage.getItem(localStorageKey)) {
+    console.log("=> ", localStorage.getItem(localStorageKey));
+    if (localStorage.getItem(localStorageKey) === roomId) { // TODO: Test this before merging!
       localStorage.removeItem(localStorageKey); // To prevent re-joining!
       globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
       window.location.href = "/";
@@ -63,7 +61,7 @@ const FileRecieverInterface = ({
         }
       )
       .then(({ data }: { data: { status: boolean; filesInfo: FileInfo[] } }) => {
-        if (!data.status || Object.keys(data?.filesInfo || {}).length == 0) {
+        if (!data.status || Object.keys(data?.filesInfo || {}).length === 0) {
           globalUtilStore?.queueMessagesForReloads("Room Id invalid!");
           window.location.href = "/";
         }
@@ -94,8 +92,39 @@ const FileRecieverInterface = ({
 
   const isFileTransferComplete = (): boolean => {
     delete fileReceivedPercentage['-1'];
-    return Object.values(fileReceivedPercentage).every(value => value == 100);
+    return Object.values(fileReceivedPercentage).every(value => value === 100) || filesInfo.every(fileInfo => !!fileInfo.link);
   }
+
+  const p2pOnFileReceive = (dataObj: {
+    name: string;
+    type: string;
+    size: number;
+    link: string;
+    fileId: number;
+  }) => {
+    for (let idx = 0; idx < filesInfo.length; idx++) {
+      if (filesInfo[idx].fileId === dataObj.fileId) {
+        filesInfo[idx].link = dataObj.link;
+        break;
+      }
+    }
+    updateFilesInfo([ ...filesInfo ]);
+  }
+  
+  const p2pOnProgress = (fileObject: p2pFilePacket) => {
+    if (fileObject.fileId !== -1) {
+      updatePercentage(fileObject.fileId, fileObject.percentage);
+    }
+  }
+
+  const p2pOnConnectionClosed = () => {
+    for (let idx = 0; idx < filesInfo.length; idx++) {
+      if (filesInfo[idx].fileId !== -1 && !filesInfo[idx].link) { // TODO: Add a better handling!
+        globalUtilStore.queueMessagesForReloads("Connection closed!");
+        window.location.href = "/";
+      }
+    }
+  };
 
   useEffect(() => {
     if (filesInfo.length === 1 && !filesInfo[0].name) {
@@ -105,9 +134,10 @@ const FileRecieverInterface = ({
       socketIO.emit("join-room", { id: roomId, userId: uniqueUserId });
       updateRoomState(true);
     }
-    socketIO.on(
-      "recieveFile",
-      async (data: FilePacketAdditional) => {
+    socketInstance.setRoom(roomId);
+    fileTransferFacilitator.listenToFileRecieveEvents({
+      additionalData: { uniqueUserId },
+      onFileReceiveCallback: async (data: FilePacketAdditional) => {
         sessionTimeouts.current.forEach((timeout) => clearTimeout(timeout));
         sessionTimeouts.current = [];
         if (!transmissionBegan) {
@@ -124,31 +154,29 @@ const FileRecieverInterface = ({
         }
         fileTransferrer.receive(data);
         updatePercentage(data.uniqueID, data.percentageCompleted);
-          socketIO.emit("acknowledge", {
-            roomId: roomId,
-            percentage: data.percentageCompleted,
-            packetId: data.packetId,
-            userId: uniqueUserId,
-            senderId: data.senderId,
-            fileId: data.uniqueID
-          }, () => {
-            // globalUtilStore.logToUI("Server failed to ack packet!");
-          });
-      }
-    );
-    socketIO.on("roomInvalidated", (data) => {
-      if (!(data.fileTransferComplete || isFileTransferComplete())) {
-        // In case the transfer is not complete, then it makes sense to just reload!
-        globalUtilStore?.queueMessagesForReloads(
-          "Sender aborted the file transfer!"
-        );
+        socketIO.emit("acknowledge", {
+          roomId: roomId,
+          percentage: data.percentageCompleted,
+          packetId: data.packetId,
+          userId: uniqueUserId,
+          senderId: data.senderId,
+          fileId: data.uniqueID
+        });
+      },
+      onRoomInvalidation: (data: { fileTransferComplete: boolean }) => {
+        if (!(data.fileTransferComplete || isFileTransferComplete())) {
+          // In case the transfer is not complete, then it makes sense to just reload!
+          globalUtilStore?.queueMessagesForReloads(
+            "Sender aborted the file transfer!"
+          );
+          window.location.href = "/";
+        }
+      },
+      onRoomFullCallback: () => {
+        // TODO: Implement this that when one user leaves the room, its gets one less!
+        globalUtilStore?.queueMessagesForReloads("Room at capacity!");
         window.location.href = "/";
       }
-    });
-    socketIO.on("roomFull:" + uniqueUserId, () => {
-      // TODO: Implement this that when one user leaves the room, its gets one less!
-      globalUtilStore?.queueMessagesForReloads("Room at capacity!");
-      window.location.href = "/";
     });
     return () => {
       // TODO: Confirm as when does it run exactly!
@@ -157,8 +185,17 @@ const FileRecieverInterface = ({
     };
   }, [flag]); // TODO: Study this phenomenon where removing this variable from this dependency array - the above socket callback was getting old values, I think it has something to do with the fact that on each state change I guess the whole function component reference is changed I think;
 
-  // console.log("$$ ", fileTransferComplete, " ", selectedFileIndex, " ", filesInfo.length);
+  useEffect(() => {
+    p2pManager.initiate(socketIO, {
+      uuid: roomId,
+      initiator: globalUtilStore.isInitiator 
+    });
+    p2pManager.on(P2PEvents.PROGRESS, p2pOnProgress);
+    p2pManager.on(P2PEvents.FILE_RECEIVED, p2pOnFileReceive);
+    p2pManager.on(P2PEvents.CONNECTION_CLOSED, p2pOnConnectionClosed);
+  }, [filesInfo, fileReceivedPercentage, flag]);
 
+  // console.log("$$ ", fileTransferComplete, " ", selectedFileIndex, " ", filesInfo.length);
   return (
     <div className="main-parent">
       {
@@ -186,7 +223,7 @@ const FileRecieverInterface = ({
                     }}
                     downloadMode={{
                       enabled: true,
-                      link: fileTransferrer.getFileDownloadLink(fileObject.fileId),
+                      link: fileTransferrer.getFileDownloadLink(fileObject.fileId) || filesInfo[fileIndex].link,
                       name: fileObject.name
                     }}
                   />
@@ -206,10 +243,10 @@ const FileRecieverInterface = ({
         <div className="main-container-mobile-1">
         <div className="mobile-sending-section-1">
            <div className="mobile-sending-button-1" style={ filesInfo.length > 1 ? {} : { visibility: "hidden", marginTop: "5%", marginBottom: "1%" } }>
-              <button disabled={selectedFileIndex == 0} onClick={() => {
+              <button disabled={selectedFileIndex === 0} onClick={() => {
                 updateSelectedFileIndex(selectedFileIndex - 1);
               }}>Prev.</button>
-              <button disabled={selectedFileIndex + 1 == filesInfo.length} onClick={() => {
+              <button disabled={selectedFileIndex + 1 === filesInfo.length} onClick={() => {
                 updateSelectedFileIndex(selectedFileIndex + 1);
               }}>Next</button>
            </div>
@@ -238,7 +275,7 @@ const FileRecieverInterface = ({
               Download
             </button>
             <button
-            style={{ background: fileTransferComplete ? "green" : "red" }}
+              style={{ background: fileTransferComplete ? "green" : "red" }}
               onClick={() => {
                 window.location.href = "/";
               }}
@@ -249,7 +286,7 @@ const FileRecieverInterface = ({
             </button>
             {
               // eslint-disable-next-line jsx-a11y/anchor-has-content
-              <a href={`${fileTransferrer.getFileDownloadLink(filesInfo[selectedFileIndex].fileId)}`}
+              <a href={`${fileTransferrer.getFileDownloadLink(filesInfo[selectedFileIndex].fileId) || filesInfo[selectedFileIndex].link}`}
                 download={true}
                 style={{display:"none"}}
                 ref={downloadRef}

@@ -5,12 +5,16 @@ export const globalDataContext = createContext<{
     getUserId: () => string,
     isDebugMode: () => boolean,
     isNonDesktopDevice: boolean,
-    serverUrl: string
+    serverUrl: string,
+    isInitiator: boolean,
+    currentTransmissionMode: 1 | 2, // 1 -> P2P, 2 -> SERVER
 }>({
     logToUI: (...args: any[]) => {},
     queueMessagesForReloads: (...args: any[]) => {},
     getUserId: () => '',
     isDebugMode: () => false,
     isNonDesktopDevice: false,
-    serverUrl: ""
+    serverUrl: "",
+    isInitiator: false,
+    currentTransmissionMode: 1
 });

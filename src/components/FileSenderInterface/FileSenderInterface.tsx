@@ -6,14 +6,16 @@ import {
   FileTransmissionEnum,
   FilePacket,
   fileTransferrer,
+  p2pFilePacket
 } from "../../utils/fileHandler";
 import socketInstance from "../../connections/socketIO";
-import cookieManager from "../../utils/cookieManager";
 import CONSTANTS from "../../consts";
 import { eventBus } from "../../utils/events";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import { apiWrapper } from "../../utils/util";
 import { globalDataContext } from "../../contexts/context";
+import fileTransferFacilitator from "../../transferModes";
+import p2pManager, { P2PEvents } from "../../utils/p2pManager";
 
 let timerInterval: NodeJS.Timer | null = null;
 const FileSenderInterface = ({
@@ -33,9 +35,10 @@ const FileSenderInterface = ({
 
   const filesInfo = fileTransferrer.getEachFileInfo();
   const [selectedFileIndex, updateSelectedFileIndex] = useState(0);
-  const [joinedRoom, updateRoomState] = useState(false);
+  const [joinedRoom, updateRoomState] = useState(false); // TODO: Make 'joinedRoom' a useRef!
   const [inputUrlValue, updateInputUrlValue] = useState(shareableLink);
   const [socketIO] = useState(socketInstance.getSocketInstance());
+  const [isPeerConnected, updatePeerConnectionStatus] = useState(false);
   const [userStore, updateUserStore] = useState<{ [userId: string]: boolean }>(
     {}
   );
@@ -104,15 +107,18 @@ const FileSenderInterface = ({
     if (userId) {
       percentageStore[userId] = percentage;
     }
-    updatePercentage(percentageStore);
+    updatePercentage({ ...percentageStore });
     forceUpdateState();
-    if (percentage === 100) {
+    if (percentage === 101) {
       reloadIfFileSendingDone();
     }
   };
 
   const reloadIfFileSendingDone = () => {
-    if (!fileTransferComplete && Object.values(percentageStore).every((value) => value == 100)) {
+    if (
+      !fileTransferComplete &&
+      Object.values(percentageStore).every((value) => value === 100)
+    ) {
       timerInterval && clearInterval(timerInterval);
       globalUtilStore?.logToUI(
         "File transfer complete! Clearing the session in 15s!"
@@ -122,7 +128,7 @@ const FileSenderInterface = ({
         () => {
           // globalUtilStore?.queueMessagesForReloads("File transfer successful!");
           socketIO.emit("deleteRoom", { roomId: uniqueId }); // Delete the room as it won't do us any good since, the transmission is already complete!
-          cookieManager.delete(CONSTANTS.uniqueIdCookie);
+          localStorage.removeItem(CONSTANTS.uniqueIdCookie);
           socketIO.disconnect();
           window.location.href = "/";
         },
@@ -136,12 +142,12 @@ const FileSenderInterface = ({
     return (
       <div className="main-file-send-cancel">
         <button
-          disabled={userIds.length === 0 || didFileTransferStart}
+          disabled={userIds.length === 0 || didFileTransferStart || !isPeerConnected}
           onClick={() => {
-            const start = Date.now();
-            timerInterval = setInterval(() => {
-              updateElapsedTime(Date.now() - start);
-            }, 500);
+            // const start = Date.now();
+            // timerInterval = setInterval(() => {
+            //   updateElapsedTime(Date.now() - start);
+            // }, 500);
             eventBus.trigger(FileTransmissionEnum.SEND); // Starting the file transmission chain!
           }}
         >
@@ -150,7 +156,10 @@ const FileSenderInterface = ({
         <button
           style={{ background: fileTransferComplete ? "green" : "red" }}
           onClick={() => {
-            socketIO.emit("deleteRoom", { roomId: uniqueId, info: { fileTransferComplete } });
+            socketIO.emit("deleteRoom", {
+              roomId: uniqueId,
+              info: { fileTransferComplete },
+            });
             closeDialogBox();
           }}
         >
@@ -168,18 +177,9 @@ const FileSenderInterface = ({
       socketIO.disconnect();
       window.location.href = "/";
     }
-    fileTransferrer.registerSenderCallback((dataObject: FilePacket) => {
-      if (!dataObject) {
-        return;
-      }
-      // console.log('sending packet for file: ', dataObject.fileName, " ", dataObject.isProcessing, " ", dataObject.percentageCompleted);
-      socketIO.emit("sendFile", {
-        ...dataObject,
-        roomId: uniqueId,
-      });
-    });
+    socketInstance.setRoom(uniqueId);
     socketIO.on("connect", () => {
-      console.log("connected!");
+      console.log("connected!"); // TODO: Do something about the production console.logs!
     });
     if (!joinedRoom) {
       socketIO.emit("create-room", {
@@ -188,9 +188,22 @@ const FileSenderInterface = ({
       });
       updateRoomState(true);
     }
-    socketIO.on(
-      uniqueId + ":users",
-      (data: { userCount: number; userId: string; userLeft?: boolean }) => {
+    const transferModeToggle = () => {
+      !didFileTransferStart && toggleFileTransferState(true);
+    };
+    eventBus.on(FileTransmissionEnum.SEND, transferModeToggle);
+    fileTransferFacilitator.listenToFileSenderEvents({
+      sender: ((dataObject: FilePacket) => {
+          if (!dataObject) {
+            return;
+          }
+          socketIO.emit("sendFile", {
+            ...dataObject,
+            roomId: uniqueId,
+          });
+      }),
+      uniqueId,
+      newUserCallback: (data: { userCount: number; userId: string; userLeft?: boolean }) => {
         const users = userStore;
         if (data.userLeft) {
           delete users[data.userId];
@@ -198,25 +211,28 @@ const FileSenderInterface = ({
           // console.log("updating current selected user!");
           users[data.userId] = true;
         }
-        if (Object.keys(users).length === 0 && didFileTransferStart) {
+        if (Object.keys(users).length === 0) {
           globalUtilStore.queueMessagesForReloads("Everyone left!");
           socketIO.disconnect();
           window.location.href = "/"; // exit if everybody left while file transfer was in progress!
         }
+        p2pManager.makeSignalRequest();
         updateUserStore(users);
         forceUpdateState();
-      }
-    );
-    socketIO.on(
-      "packet-acknowledged",
-      (data: {
+      },
+      packetAcknowledgeCallback: (data: {
         percentage: number;
         userId: string;
         packetId: number;
         fileId: number;
       }) => {
-        // console.log("~~> ", data.fileId, " ", data.percentage);
-        eventBus.trigger(FileTransmissionEnum.RECEIVE);
+        if (sessionTimeout.current.length > 0) {
+          sessionTimeout.current.forEach((timeOut) => {
+            clearTimeout(timeOut);
+          });
+          sessionTimeout.current = [];
+        }
+        eventBus.trigger(FileTransmissionEnum.SEND);
         // The multi-file transfer mode currently supports only one user at a time - so maintaining percentages on the basis of files.
         updatePercentageInStore({
           fileId: data.fileId,
@@ -224,36 +240,29 @@ const FileSenderInterface = ({
           userId: data.userId,
         });
       }
-    );
-    eventBus.on(FileTransmissionEnum.SEND, async () => {
-      !didFileTransferStart && toggleFileTransferState(true);
-      await fileTransferrer.send();
-      const timeOut = setTimeout(() => {
-        globalUtilStore.queueMessagesForReloads("Session timedout!");
-        socketIO.disconnect();
-        window.location.href = "/";
-      }, 15000);
-      sessionTimeout.current.push(timeOut);
-    });
-    eventBus.on(FileTransmissionEnum.RECEIVE, () => {
-      if (sessionTimeout.current.length > 0) {
-        sessionTimeout.current.forEach(timeOut => {
-          clearTimeout(timeOut);
-        });
-        sessionTimeout.current = [];
-      }
-      eventBus.trigger(FileTransmissionEnum.SEND);
     });
     return () => {
       socketIO.off("connect");
-      socketIO.off(uniqueId + ":users");
-      socketIO.off("recieveFile");
-      socketIO.off("packet-acknowledged");
-      eventBus.off(FileTransmissionEnum.SEND);
-      eventBus.off(FileTransmissionEnum.RECEIVE);
       timerInterval && clearInterval(timerInterval);
     };
-  }, [userStore, percentageStore, flag, fileTransferComplete]);
+  }, [userStore, percentageStore, flag, fileTransferComplete, isPeerConnected]);
+
+  const updatePercentageWrapper = ({ fileId, percentage, name }: p2pFilePacket) => {
+    // TODO: Check if the listeners for this stacks up!
+    updatePercentageInStore({ fileId, percentage, userId: Object.keys(userStore)[0] });
+  };
+
+  useEffect(() => {
+    p2pManager.initiate(
+      socketIO,
+      {
+        initiator: globalUtilStore.isInitiator,
+        uuid: uniqueId,
+      }
+    );
+    p2pManager.on(P2PEvents.PROGRESS, updatePercentageWrapper);
+    p2pManager.on(P2PEvents.CONNECTED, updatePeerConnectionStatus);
+  }, []);
 
   const userIds = Object.keys(userStore);
   return (
@@ -396,7 +405,7 @@ const FileSenderInterface = ({
                 }
               >
                 <button
-                  disabled={selectedFileIndex == 0}
+                  disabled={selectedFileIndex === 0}
                   onClick={() => {
                     updateSelectedFileIndex(selectedFileIndex - 1);
                   }}
@@ -405,7 +414,7 @@ const FileSenderInterface = ({
                 </button>
                 <button
                   disabled={
-                    selectedFileIndex + 1 == fileTransferrer.totalFileCount
+                    selectedFileIndex + 1 === fileTransferrer.totalFileCount
                   }
                   onClick={() => {
                     updateSelectedFileIndex(selectedFileIndex + 1);

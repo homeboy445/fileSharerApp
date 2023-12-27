@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import "./setup";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
@@ -7,10 +8,10 @@ import FileSenderInterface from "./components/FileSenderInterface/FileSenderInte
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
 import socketIO from "./connections/socketIO";
-import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 import { fileTransferrer } from "./utils/fileHandler";
 import { globalDataContext } from "./contexts/context";
+import { FileTransferModeEnum } from "./transferModes";
 
 type GenericObject = { [params: string]: any };
 
@@ -19,12 +20,12 @@ const uniqueUserId = (function () {
   let uuid = uuidv4();
   // The UUID should be loaded from cache only in the case of receiving a file!
   const cachedUUID = window.location.href.includes("?id=")
-    ? cookieManager.get(CONSTANTS.uniqueIdCookie)
+    ? localStorage.getItem(CONSTANTS.uniqueIdCookie)
     : uuid;
   if (cachedUUID) {
     uuid = cachedUUID;
   } else {
-    cookieManager.set(CONSTANTS.uniqueIdCookie, uuid);
+    localStorage.setItem(CONSTANTS.uniqueIdCookie, uuid);
   }
   socketIO.initialize({ uuid });
   return uuid;
@@ -39,6 +40,7 @@ const App = () => {
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
   const [width, setWidth] = useState<number>(window.innerWidth);
+  const currentFileTransmissionMode = useRef(FileTransferModeEnum.P2P);
 
   const handleWindowSizeChange = () => {
     setWidth(window.innerWidth);
@@ -133,10 +135,10 @@ const App = () => {
           backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
         }}
       >
-        <div className="topTile">
-          <img src={FileCloudIcon} />
+        {/* <div className="topTile">
+          <img src={FileCloudIcon} alt={"send file icon"}/>
           <h3>FileSharer.io</h3>
-        </div>
+        </div> */}
         <div className="msg-box-1">
           <h1>Welcome to FileSharer.io!</h1>
           <h2>
@@ -157,10 +159,10 @@ const App = () => {
               ref={fileRef}
               multiple={true}
               onChange={(e: any) => {
-                fileTransferrer.initiate(
-                  Object.values((e as any).target.files)
-                );
-                if ((e as any).target.files.length > 0) {
+                fileTransferrer.initiate(Object.values((e.target.files as { [fileIndex: number]: File })));
+                // TODO: Remove this!
+                (window as any).files = e.target.files;
+                if (e.target.files.length > 0) {
                   toggleDialog(true);
                 }
               }}
@@ -190,7 +192,9 @@ const App = () => {
           isNonDesktopDevice,
           serverUrl: (process.env.REACT_APP_MODE === "dev"
           ? CONSTANTS.devServerURL
-          : CONSTANTS.serverURL)
+          : CONSTANTS.serverURL),
+          isInitiator: window.location.search.indexOf("?id=") > -1 ? false : true,
+          currentTransmissionMode: currentFileTransmissionMode.current
         }}
       >
         {showFileSharerDialog && !queryParams["id"] ? (
