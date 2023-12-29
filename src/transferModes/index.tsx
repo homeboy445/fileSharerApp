@@ -1,7 +1,6 @@
 import socketIO from "../connections/socketIO";
 import { eventBus } from "../utils/events";
 import {
-  FilePacket,
   FilePacketAdditional,
   FileTransmissionEnum,
   fileTransferrer,

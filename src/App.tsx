@@ -1,9 +1,9 @@
+/// <reference path="./types/index.d.ts" />
 import React, { useState, useRef, useEffect } from "react";
 import "./setup";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
-import FileCloudIcon from "./assets/filecloud.png";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
@@ -17,11 +17,11 @@ type GenericObject = { [params: string]: any };
 
 const idStore: { [props: string]: any } = {};
 const uniqueUserId = (function () {
-  let uuid = uuidv4();
+  let uuid: string = "";
   // The UUID should be loaded from cache only in the case of receiving a file!
   const cachedUUID = window.location.href.includes("?id=")
     ? localStorage.getItem(CONSTANTS.uniqueIdCookie)
-    : uuid;
+    : (uuid = uuidv4());
   if (cachedUUID) {
     uuid = cachedUUID;
   } else {
@@ -30,6 +30,14 @@ const uniqueUserId = (function () {
   socketIO.initialize({ uuid });
   return uuid;
 })();
+
+if (process.env.REACT_APP_MODE !== 'dev') {
+  var logStore: { logs: string[], warnings: string[], errors: string[] } = { logs: [], warnings: [], errors: [] };
+  (window as any).fl_store = logStore;
+  console.log = (...args: any[]) => { logStore.logs.push(...args); };
+  console.warn = (...args: any[]) => { logStore.warnings.push(...args); };
+  console.error = (...args: any[]) => { logStore.errors.push(...args); };
+}
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
@@ -135,10 +143,6 @@ const App = () => {
           backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
         }}
       >
-        {/* <div className="topTile">
-          <img src={FileCloudIcon} alt={"send file icon"}/>
-          <h3>FileSharer.io</h3>
-        </div> */}
         <div className="msg-box-1">
           <h1>Welcome to FileSharer.io!</h1>
           <h2>
@@ -146,7 +150,7 @@ const App = () => {
           </h2>
           <ul>
             <li>✅Share any file type</li>
-            <li>✅Send upto 200Mb of data</li>
+            <li>✅Send upto {fileTransferrer.getMaxAllowedSize()} of data</li>
             <li>✅Peer to Peer transmission</li>
             <li>✅Secure Data Propagation</li>
           </ul>
@@ -161,7 +165,7 @@ const App = () => {
               onChange={(e: any) => {
                 fileTransferrer.initiate(Object.values((e.target.files as { [fileIndex: number]: File })));
                 // TODO: Remove this!
-                (window as any).files = e.target.files;
+                // (window as any).files = e.target.files;
                 if (e.target.files.length > 0) {
                   toggleDialog(true);
                 }

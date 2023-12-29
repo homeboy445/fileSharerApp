@@ -54,7 +54,6 @@ const FileSenderInterface = ({
     useState<boolean>(false);
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
   const [elapsedTime, updateElapsedTime] = useState<number>(0);
-  const [flag, toggleFlag] = useState(false);
   const sessionTimeout = useRef<NodeJS.Timeout[]>([]);
 
   const unloadFnRef = useRef((e: any) => {
@@ -73,10 +72,6 @@ const FileSenderInterface = ({
   const removeUnloadListener = () => {
     console.log("removed the unload listener!");
     window.removeEventListener("beforeunload", unloadFnRef.current);
-  };
-
-  const forceUpdateState = () => {
-    toggleFlag(!flag);
   };
 
   const getFormatedElapsedTimeString = () => {
@@ -103,13 +98,13 @@ const FileSenderInterface = ({
     percentage: number;
     userId?: string;
   }) => {
-    percentageStore[`${fileId}`] = percentage;
+    const percStore = Object.assign({}, percentageStore);
+    percStore[`${fileId}`] = percentage;
     if (userId) {
-      percentageStore[userId] = percentage;
+      percStore[userId] = percentage;
     }
-    updatePercentage({ ...percentageStore });
-    forceUpdateState();
-    if (percentage === 101) {
+    updatePercentage(percStore);
+    if (percentage === 100) {
       reloadIfFileSendingDone();
     }
   };
@@ -172,7 +167,7 @@ const FileSenderInterface = ({
   useEffect(() => {
     if (fileTransferrer.doesAnyFileExceedFileSizeLimit) {
       globalUtilStore?.queueMessagesForReloads(
-        "Only 200Mb of data transfer is permitted currently!"
+        `Only ${fileTransferrer.getMaxAllowedSize()} of data transfer is permitted currently!`
       );
       socketIO.disconnect();
       window.location.href = "/";
@@ -204,21 +199,20 @@ const FileSenderInterface = ({
       }),
       uniqueId,
       newUserCallback: (data: { userCount: number; userId: string; userLeft?: boolean }) => {
-        const users = userStore;
+        const users = Object.assign({}, userStore);
         if (data.userLeft) {
           delete users[data.userId];
         } else {
           // console.log("updating current selected user!");
           users[data.userId] = true;
         }
-        if (Object.keys(users).length === 0) {
+        if (Object.keys(users).length === 0 && didFileTransferStart) {
           globalUtilStore.queueMessagesForReloads("Everyone left!");
           socketIO.disconnect();
           window.location.href = "/"; // exit if everybody left while file transfer was in progress!
         }
         p2pManager.makeSignalRequest();
         updateUserStore(users);
-        forceUpdateState();
       },
       packetAcknowledgeCallback: (data: {
         percentage: number;
@@ -245,7 +239,7 @@ const FileSenderInterface = ({
       socketIO.off("connect");
       timerInterval && clearInterval(timerInterval);
     };
-  }, [userStore, percentageStore, flag, fileTransferComplete, isPeerConnected]);
+  }, [userStore, percentageStore, fileTransferComplete, isPeerConnected]);
 
   const updatePercentageWrapper = ({ fileId, percentage, name }: p2pFilePacket) => {
     // TODO: Check if the listeners for this stacks up!
@@ -262,7 +256,7 @@ const FileSenderInterface = ({
     );
     p2pManager.on(P2PEvents.PROGRESS, updatePercentageWrapper);
     p2pManager.on(P2PEvents.CONNECTED, updatePeerConnectionStatus);
-  }, []);
+  }, [percentageStore]);
 
   const userIds = Object.keys(userStore);
   return (
@@ -427,7 +421,7 @@ const FileSenderInterface = ({
                 fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)}
               />
               <div style={{ marginTop: "10%" }}>
-                {fileTransferrer.isMultiFileMode ? (
+                {fileTransferrer.isMultiFileMode && filesInfo.length > 0 ? (
                   <ProgressBar
                     title={
                       (+percentageStore[filesInfo[selectedFileIndex].fileId] ||

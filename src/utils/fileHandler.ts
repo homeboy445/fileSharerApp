@@ -44,7 +44,7 @@ export enum FileTransmissionEnum {
   RECEIVE = "fl_receive",
 }
 
-const FileSizeLimit = 1024 * 1024 * 2024; // roughly 1Gb!
+const FileSizeLimit = 1024 * 1024 * 1024 * 1.5; // roughly 1Gb!
 
 export type FilePacket = {
   fileChunkArrayBuffer: Uint8Array;
@@ -359,6 +359,16 @@ class FileTransmissionWrapper extends P2PFileHandler {
   totalFileCount = 0;
   isMultiFileMode = false;
   doesAnyFileExceedFileSizeLimit = false;
+
+  public getMaxAllowedSize(): string {
+    const MB = 1024 * 1024;
+    const GB = 1024 * 1024 * 1024;
+    if (FileSizeLimit >= GB) {
+      return `${(FileSizeLimit / GB).toFixed(1)}GB`;
+    } else {
+      return `${(FileSizeLimit / MB).toFixed(1)}MB`;
+    }
+  }
 
   /**
    * Initiates the file handling system.
