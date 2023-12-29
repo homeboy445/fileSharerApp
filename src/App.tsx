@@ -12,6 +12,7 @@ import CONSTANTS from "./consts/index";
 import { fileTransferrer } from "./utils/fileHandler";
 import { globalDataContext } from "./contexts/context";
 import { FileTransferModeEnum } from "./transferModes";
+import p2pManager from "./utils/p2pManager";
 
 type GenericObject = { [params: string]: any };
 
@@ -49,6 +50,7 @@ const App = () => {
   const queuedMessages: string[] = [];
   const [width, setWidth] = useState<number>(window.innerWidth);
   const currentFileTransmissionMode = useRef(FileTransferModeEnum.P2P);
+  const [appDisabled, toggleAppDisability] = useState(false);
 
   const handleWindowSizeChange = () => {
     setWidth(window.innerWidth);
@@ -111,14 +113,19 @@ const App = () => {
   };
 
   useEffect(() => {
-    socketIoInstance.on("error", (data) => {
-      queueMessagesForReloads(data.message || "Some error occurred!");
-      window.location.href = "/";
-    });
-    loadQueueMessagesAndLogThemtoUI();
-    return () => {
-      socketIoInstance.off("error");
-    };
+    if (!p2pManager.isWebRTCSupported()) {
+      logToUI("Error: WebRTC not supported!");
+      toggleAppDisability(true);
+    } else {
+      socketIoInstance.on("error", (data) => {
+        queueMessagesForReloads(data.message || "Some error occurred!");
+        window.location.href = "/";
+      });
+      loadQueueMessagesAndLogThemtoUI();
+      return () => {
+        socketIoInstance.off("error");
+      };
+    }
   }, []);
 
   const isNonDesktopDevice = width < 1000;
@@ -164,8 +171,6 @@ const App = () => {
               multiple={true}
               onChange={(e: any) => {
                 fileTransferrer.initiate(Object.values((e.target.files as { [fileIndex: number]: File })));
-                // TODO: Remove this!
-                // (window as any).files = e.target.files;
                 if (e.target.files.length > 0) {
                   toggleDialog(true);
                 }
@@ -178,6 +183,7 @@ const App = () => {
             />
             <button
               id="choose-file"
+              disabled={appDisabled}
               onClick={() => {
                 (fileRef as any).current.click();
               }}

@@ -253,20 +253,24 @@ class P2PFileHandler {
       if (fileBlob) {
         fileBlob = new Blob([fileBlob, stream], { type: currentFileInfo[0].type });
       }
-      if (fileBlob && currentFileInfo[0].size === fileBlob.size) {
-        const fileLink = URL.createObjectURL(fileBlob);
-        updatePercentage(100);
-        eventBus.trigger(P2PEvents.FILE_RECEIVED, { ...currentFileInfo[0], link: fileLink });
-        this.socketInstance.emit("file-received", { ...currentFileInfo[0], roomId: socketIO.getCurrentRoomId() });
-        currentFileInfo.splice(0, 1);
-        fileBlob = null;
-        lastEncounteredPercentage = -1;
-      } else {
-        const percentage = 100 - calcPercentage(currentFileInfo[0].size, fileBlob?.size || 0);
-        if (lastEncounteredPercentage !== percentage) {
-          updatePercentage(percentage);
-          lastEncounteredPercentage = percentage;
+      try {
+        if (fileBlob && currentFileInfo[0].size === fileBlob.size) {
+          const fileLink = URL.createObjectURL(fileBlob);
+          updatePercentage(100);
+          eventBus.trigger(P2PEvents.FILE_RECEIVED, { ...currentFileInfo[0], link: fileLink });
+          this.socketInstance.emit("file-received", { ...currentFileInfo[0], roomId: socketIO.getCurrentRoomId() });
+          currentFileInfo.splice(0, 1);
+          fileBlob = null;
+          lastEncounteredPercentage = -1;
+        } else {
+          const percentage = 100 - calcPercentage(currentFileInfo[0].size, fileBlob?.size || 0);
+          if (lastEncounteredPercentage !== percentage) {
+            updatePercentage(percentage);
+            lastEncounteredPercentage = percentage;
+          }
         }
+      } catch (e) {
+        debugger;
       }
     });
   }

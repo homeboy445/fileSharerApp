@@ -52,9 +52,16 @@
 
 @media only screen and (max-width: 1000px) {
     .main-file-info-bx {
-        width: 95%;
+        width: 50%;
+        align-self: center;
     }
     .main-file-info-bx > table > tbody > tr > td:nth-child(1) {
         white-space: inherit;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+    .main-file-info-bx {
+        width: 95%;
     }
 }

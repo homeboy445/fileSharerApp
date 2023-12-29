@@ -55,7 +55,6 @@ class P2PManager {
     if (this.init) {
       return;
     }
-    console.log("initializing peer manager!");
     this.init = true;
     this.roomId = config.uuid;
     this.peer = new SimplePeer(config);
@@ -65,11 +64,13 @@ class P2PManager {
     this.attachSignalListeners();
     this.attachDataListeners();
     this.attachFileInfoReceiver();
-    (window as any).p2pHandler = this;
     setTimeout(() => {
-      // Wait time of 30s!
       this.promiseResolver.resolve(false);
-    }, 30000);
+    }, 15000);
+  }
+
+  public isWebRTCSupported(): boolean {
+    return SimplePeer.WEBRTC_SUPPORT;
   }
 
   private generateSignal(): void {
@@ -139,6 +140,7 @@ class P2PManager {
 
   public async sendData(data: Uint8Array) {
     if (!this.init) {
+      console.warn("Peer init not done!");
       return;
     }
     let len = data.length, offset = 0;
