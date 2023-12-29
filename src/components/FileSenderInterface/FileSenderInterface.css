@@ -264,12 +264,16 @@ h1#elapsedTime {
   }
 }
 
-@media only screen and (max-width: 800px) {
-  /* .mobile-sending-button-1 {
-    margin-top: 0%;
-    margin-bottom: 10%;
-  } */
-  #userCount {
-    /* margin-top: -3%; */
+@media only screen and (max-width: 1000px) {
+  .mobile-sending-section-1 {
+    margin-top: 5%;
+    width: 65%;
+    align-self: center;
+  }
+}
+
+@media only screen and (max-width: 500px) {
+  .mobile-sending-section-1 {
+    width: 95%;
   }
 }

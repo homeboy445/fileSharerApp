@@ -1,34 +1,44 @@
+/// <reference path="./types/index.d.ts" />
 import React, { useState, useRef, useEffect } from "react";
+import "./setup";
 import FileSharerImage from "./assets/sendFiles.jpg";
 import { v4 as uuidv4 } from "uuid";
 import "./App.css";
-import FileCloudIcon from "./assets/filecloud.png";
 import FileSenderInterface from "./components/FileSenderInterface/FileSenderInterface";
 import FileRecieverInterface from "./components/FileRecieverInterface/FileRecieverInterface";
 import MessageBox from "./components/PopUps/MessageBox/MessageBox";
 import socketIO from "./connections/socketIO";
-import cookieManager from "./utils/cookieManager";
 import CONSTANTS from "./consts/index";
 import { fileTransferrer } from "./utils/fileHandler";
 import { globalDataContext } from "./contexts/context";
+import { FileTransferModeEnum } from "./transferModes";
+import p2pManager from "./utils/p2pManager";
 
 type GenericObject = { [params: string]: any };
 
 const idStore: { [props: string]: any } = {};
 const uniqueUserId = (function () {
-  let uuid = uuidv4();
+  let uuid: string = "";
   // The UUID should be loaded from cache only in the case of receiving a file!
   const cachedUUID = window.location.href.includes("?id=")
-    ? cookieManager.get(CONSTANTS.uniqueIdCookie)
-    : uuid;
+    ? localStorage.getItem(CONSTANTS.uniqueIdCookie)
+    : (uuid = uuidv4());
   if (cachedUUID) {
     uuid = cachedUUID;
   } else {
-    cookieManager.set(CONSTANTS.uniqueIdCookie, uuid);
+    localStorage.setItem(CONSTANTS.uniqueIdCookie, uuid);
   }
   socketIO.initialize({ uuid });
   return uuid;
 })();
+
+if (process.env.REACT_APP_MODE !== 'dev') {
+  var logStore: { logs: string[], warnings: string[], errors: string[] } = { logs: [], warnings: [], errors: [] };
+  (window as any).fl_store = logStore;
+  console.log = (...args: any[]) => { logStore.logs.push(...args); };
+  console.warn = (...args: any[]) => { logStore.warnings.push(...args); };
+  console.error = (...args: any[]) => { logStore.errors.push(...args); };
+}
 
 const App = () => {
   const [showFileSharerDialog, toggleDialog] = useState(false);
@@ -39,6 +49,8 @@ const App = () => {
   const fileRef = useRef(null);
   const queuedMessages: string[] = [];
   const [width, setWidth] = useState<number>(window.innerWidth);
+  const currentFileTransmissionMode = useRef(FileTransferModeEnum.P2P);
+  const [appDisabled, toggleAppDisability] = useState(false);
 
   const handleWindowSizeChange = () => {
     setWidth(window.innerWidth);
@@ -101,14 +113,19 @@ const App = () => {
   };
 
   useEffect(() => {
-    socketIoInstance.on("error", (data) => {
-      queueMessagesForReloads(data.message || "Some error occurred!");
-      window.location.href = "/";
-    });
-    loadQueueMessagesAndLogThemtoUI();
-    return () => {
-      socketIoInstance.off("error");
-    };
+    if (!p2pManager.isWebRTCSupported()) {
+      logToUI("Error: WebRTC not supported!");
+      toggleAppDisability(true);
+    } else {
+      socketIoInstance.on("error", (data) => {
+        queueMessagesForReloads(data.message || "Some error occurred!");
+        window.location.href = "/";
+      });
+      loadQueueMessagesAndLogThemtoUI();
+      return () => {
+        socketIoInstance.off("error");
+      };
+    }
   }, []);
 
   const isNonDesktopDevice = width < 1000;
@@ -133,10 +150,6 @@ const App = () => {
           backdropFilter: showFileSharerDialog ? "none" : "blur(5%)",
         }}
       >
-        <div className="topTile">
-          <img src={FileCloudIcon} />
-          <h3>FileSharer.io</h3>
-        </div>
         <div className="msg-box-1">
           <h1>Welcome to FileSharer.io!</h1>
           <h2>
@@ -144,7 +157,7 @@ const App = () => {
           </h2>
           <ul>
             <li>✅Share any file type</li>
-            <li>✅Send upto 200Mb of data</li>
+            <li>✅Send upto {fileTransferrer.getMaxAllowedSize()} of data</li>
             <li>✅Peer to Peer transmission</li>
             <li>✅Secure Data Propagation</li>
           </ul>
@@ -157,10 +170,8 @@ const App = () => {
               ref={fileRef}
               multiple={true}
               onChange={(e: any) => {
-                fileTransferrer.initiate(
-                  Object.values((e as any).target.files)
-                );
-                if ((e as any).target.files.length > 0) {
+                fileTransferrer.initiate(Object.values((e.target.files as { [fileIndex: number]: File })));
+                if (e.target.files.length > 0) {
                   toggleDialog(true);
                 }
               }}
@@ -172,6 +183,7 @@ const App = () => {
             />
             <button
               id="choose-file"
+              disabled={appDisabled}
               onClick={() => {
                 (fileRef as any).current.click();
               }}
@@ -190,7 +202,9 @@ const App = () => {
           isNonDesktopDevice,
           serverUrl: (process.env.REACT_APP_MODE === "dev"
           ? CONSTANTS.devServerURL
-          : CONSTANTS.serverURL)
+          : CONSTANTS.serverURL),
+          isInitiator: window.location.search.indexOf("?id=") > -1 ? false : true,
+          currentTransmissionMode: currentFileTransmissionMode.current
         }}
       >
         {showFileSharerDialog && !queryParams["id"] ? (

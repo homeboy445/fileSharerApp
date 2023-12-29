@@ -16,33 +16,6 @@
     height: 100%;
 }
 
-.topTile {
-  position: fixed;
-  top: 0%;
-  display: flex;
-  justify-content: left;
-  border-bottom: 2px solid white;
-  width: 100%;
-}
-
-.topTile > img {
-  width: 5%;
-  align-self: center;
-  margin-left: 2%;
-}
-
-.topTile > h3 {
-  align-items: baseline;
-  font-size: 2rem;
-  margin: 0%;
-  margin-left: 1%;
-  margin-top: 1%;
-  font-weight: 400;
-  color: white;
-  text-shadow: 1px 1px 1px darkblue;
-  font-family: 'Pacifico', cursive;
-}
-
 .msg-box-1 {
     width: 65%;
     margin-right: 4%;
@@ -202,18 +175,6 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
-  }
-  .topTile {
-    margin-bottom: 10%;
-    display: flex;
-    justify-content: space-between;
-  }
-  .topTile > img {
-    width: 12%;
-  }
-  .topTile > h3 {
-    font-size: 1.5rem;
-    margin-right: 2%;
   }
   .msg-box-1 {
     width: 100%;
