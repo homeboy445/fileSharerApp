@@ -102,6 +102,7 @@ const FileRecieverInterface = ({
     link: string;
     fileId: number;
   }) => {
+    console.log("File received: ", dataObj.name);
     let linkReceived = 0;
     for (let idx = 0; idx < filesInfo.length; idx++) {
       if (filesInfo[idx].fileId === dataObj.fileId) {
@@ -118,8 +119,6 @@ const FileRecieverInterface = ({
   const p2pOnProgress = (fileObject: p2pFilePacket) => {
     if (fileObject.fileId && fileObject.fileId !== -1 && filesInfo.length !== 0) {
       updatePercentage(fileObject.fileId, fileObject.percentage);
-    } else {
-      // console.warn("file id is negative!");
     }
   }
 

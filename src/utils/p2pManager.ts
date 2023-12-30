@@ -66,7 +66,7 @@ class P2PManager {
     this.attachFileInfoReceiver();
     setTimeout(() => {
       this.promiseResolver.resolve(false);
-    }, 15000);
+    }, 30000);
   }
 
   public isWebRTCSupported(): boolean {
@@ -145,6 +145,7 @@ class P2PManager {
     }
     let len = data.length, offset = 0;
     const RTCDataChannelInstance: RTCDataChannel = (this.peer as any)._channel;
+    console.log("sending data via webRTC Channel!");
     do {
       const chunk = data.slice(offset, Math.min(data.length, offset + this.CHUNK_SIZE_LIMIT));
       // spreading the data array into shorter chunks!
@@ -152,7 +153,6 @@ class P2PManager {
         let cb = () => {};
         const promise = new Promise<void>((r) => { cb = r; });
         RTCDataChannelInstance.onbufferedamountlow = () => {
-          // console.log("buffered amount low now!");
           cb();
         };
         await promise;
@@ -161,6 +161,7 @@ class P2PManager {
       offset += this.CHUNK_SIZE_LIMIT;
       len -= this.CHUNK_SIZE_LIMIT;
     } while (len > 0);
+    console.log("sending data via webRTC Channel complete!");
   }
 }
 

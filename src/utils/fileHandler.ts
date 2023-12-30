@@ -236,6 +236,7 @@ class P2PFileHandler {
   }
 
   private handleFileReception() {
+    let interval: NodeJS.Timer | null = null;
     const currentFileInfo: Array<p2pFilePacket> = [];
     let fileBlob: Blob | null;
     const updatePercentage = (percentage: number) => eventBus.trigger(P2PEvents.PROGRESS, { ...currentFileInfo[0], percentage });
@@ -243,10 +244,12 @@ class P2PFileHandler {
     this.socketInstance.on(
       "file-transfer-info-channel",
       (fileInfoObj: p2pFilePacket) => {
-        // console.log("file transfer info received:", fileInfoObj, " ", fileBlob);
+        console.log("file transfer info received: ", fileInfoObj);
+        interval && clearInterval(interval);
         updatePercentage(0);
         currentFileInfo.push(fileInfoObj);
         fileBlob = new Blob([], { type: fileInfoObj.type });
+        this.socketInstance.emit("file-info-received", { fileId: fileInfoObj.fileId, roomId: socketIO.getCurrentRoomId() });
       }
     );
     p2pManager.on(P2PEvents.RECEIVE, (stream: Uint8Array): void => {
@@ -258,7 +261,9 @@ class P2PFileHandler {
           const fileLink = URL.createObjectURL(fileBlob);
           updatePercentage(100);
           eventBus.trigger(P2PEvents.FILE_RECEIVED, { ...currentFileInfo[0], link: fileLink });
-          this.socketInstance.emit("file-received", { ...currentFileInfo[0], roomId: socketIO.getCurrentRoomId() });
+          interval = setInterval(() => {
+            this.socketInstance.emit("file-received", { ...currentFileInfo[0], roomId: socketIO.getCurrentRoomId() });
+          }, 100);
           currentFileInfo.splice(0, 1);
           fileBlob = null;
           lastEncounteredPercentage = -1;
@@ -270,7 +275,7 @@ class P2PFileHandler {
           }
         }
       } catch (e) {
-        debugger;
+        console.error(e);
       }
     });
   }
@@ -304,14 +309,22 @@ class P2PFileHandler {
       return;
     }
     const listenForFileReceivedCompletion = async () => {
-      let cb: any = () => {}, timer: NodeJS.Timeout | null = null;
-      const promise = new Promise((res) => { cb = res; timer = setTimeout(() => cb, 10000); });
+      let cb: any = () => {};
+      const promise = new Promise((res) => { cb = res; });
       this.socketInstance.on("file-received", (fileInfo: any) => {
         cb();
-        timer !== null && clearTimeout(timer);
       });
       return promise;
     };
+    const listenForFileInfoAcknowledgement = () => {
+      let cb: any = () => {};
+      const promise = new Promise((res) => { cb = res; });
+      this.socketInstance.on("file-info-received-ack", (data: any) => {
+        console.log("file info acknowledgement received: ", data);
+        cb();
+      });
+      return promise;
+    }
     for (let idx = 0; idx < files.length; idx++) {
       const fileDataObject = {
         ...files[idx].getFileInfo(),
@@ -320,17 +333,14 @@ class P2PFileHandler {
         roomId: socketIO.getCurrentRoomId()
       };
       let sentDataChunkSize = 0;
-      let initiateFileInfo = false;
       const updatePercentage = (percentage: number) => eventBus.trigger(P2PEvents.PROGRESS, { ...fileDataObject, percentage });
-      // console.log("Sending file: ", fileDataObject);
+      console.log("Sending file: ", fileDataObject);
       updatePercentage(0);
+      this.socketInstance.emit("file-transfer-info-channel", fileDataObject);
+      await listenForFileInfoAcknowledgement();
       await this.generateFileStream(files[idx].get(), async (data) => {
         if (!data.stream || data.isComplete) {
           return;
-        }
-        if (!initiateFileInfo) {
-          initiateFileInfo = true;
-          this.socketInstance.emit("file-transfer-info-channel", fileDataObject);
         }
         await p2pManager.sendData(data.stream);
         sentDataChunkSize += data.stream.length;
@@ -338,7 +348,7 @@ class P2PFileHandler {
         updatePercentage(currentPercentage);
       });
       await listenForFileReceivedCompletion();
-      // console.log("Sending file complete! ", fileDataObject);
+      console.log("Sending file complete! ", fileDataObject);
       updatePercentage(100);
     }
   }

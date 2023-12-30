@@ -139,10 +139,6 @@ const FileSenderInterface = ({
         <button
           disabled={userIds.length === 0 || didFileTransferStart || !isPeerConnected}
           onClick={() => {
-            // const start = Date.now();
-            // timerInterval = setInterval(() => {
-            //   updateElapsedTime(Date.now() - start);
-            // }, 500);
             eventBus.trigger(FileTransmissionEnum.SEND); // Starting the file transmission chain!
           }}
         >
