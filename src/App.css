@@ -30,12 +30,12 @@
 }
 
 .msg-box-1 > h1 {
-  font-size: 4.5rem;
+  font-size: 2.5rem;
   font-family: 'Comfortaa', cursive;
 }
 
 .msg-box-1 > h2 {
-    font-size: 1.5rem;
+    font-size: 1rem;
     margin-left: 0.5%;
     margin-bottom: 6%;
 }
@@ -49,7 +49,7 @@
 
 .msg-box-1 > ul > li {
     list-style: none;
-    font-size: 2rem;
+    font-size: 1rem;
     text-shadow: 1px 1px 1px black;
 }
 
@@ -57,7 +57,7 @@
     width: 20%;
     padding: 0.5%;
     background: white;
-    height: 500px;
+    height: 400px;
     margin-right: 5%;
     display: flex;
     flex-direction: column;
@@ -92,7 +92,7 @@
   width: 70%;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -52%);
+  transform: translate(-50%, -52%) scale(0.8);
   z-index:1;
 }
 

@@ -351,6 +351,7 @@ class P2PFileHandler {
       console.log("Sending file complete! ", fileDataObject);
       updatePercentage(100);
     }
+    eventBus.trigger(P2PEvents.FILE_SENDING_COMPLETE);
   }
 };
 

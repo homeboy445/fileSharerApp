@@ -18,6 +18,7 @@ import fileTransferFacilitator from "../../transferModes";
 import p2pManager, { P2PEvents } from "../../utils/p2pManager";
 
 let timerInterval: NodeJS.Timer | null = null;
+let didFileTransferBegin = () => false;
 const FileSenderInterface = ({
   uniqueId,
   closeDialogBox,
@@ -42,12 +43,11 @@ const FileSenderInterface = ({
   const [userStore, updateUserStore] = useState<{ [userId: string]: boolean }>(
     {}
   );
-  const [percentageStore, updatePercentage] = useState<{
-    [identifier: string]: number;
-  }>(
-    filesInfo.reduce((o: { [id: string]: number }, { fileId }) => {
-      o[`${fileId}`] = o[`${fileId}`] || 0;
-      return o;
+  const [percentageStore, updatePercentage] = useState<{ [identifier: string]: number }>(
+    filesInfo.reduce((accumulator: { [id: string]: number }, fileInfo) => {
+      const { fileId } = fileInfo;
+      accumulator[fileId] = accumulator[fileId] || 0;
+      return accumulator;
     }, {})
   );
   const [didFileTransferStart, toggleFileTransferState] =
@@ -118,6 +118,7 @@ const FileSenderInterface = ({
       globalUtilStore?.logToUI(
         "File transfer complete! Clearing the session in 15s!"
       );
+      console.log("File transfer is complete!");
       updateFileTransferStatus(true);
       apiWrapper.selfClearingTimeOut(
         () => {
@@ -158,6 +159,12 @@ const FileSenderInterface = ({
         </button>
       </div>
     );
+  }
+
+  // Initialised this function outside this component, so as to assign it a new function
+  // on every re-render to maintain the closure variables!
+  didFileTransferBegin = () => {
+    return (didFileTransferStart || fileTransferComplete);
   }
 
   useEffect(() => {
@@ -202,7 +209,7 @@ const FileSenderInterface = ({
           // console.log("updating current selected user!");
           users[data.userId] = true;
         }
-        if (Object.keys(users).length === 0 && didFileTransferStart) {
+        if (Object.keys(users).length === 0 && didFileTransferBegin()) {
           globalUtilStore.queueMessagesForReloads("Everyone left!");
           socketIO.disconnect();
           window.location.href = "/"; // exit if everybody left while file transfer was in progress!

@@ -22,12 +22,9 @@ const uniqueUserId = (function () {
   // The UUID should be loaded from cache only in the case of receiving a file!
   const cachedUUID = window.location.href.includes("?id=")
     ? localStorage.getItem(CONSTANTS.uniqueIdCookie)
-    : (uuid = uuidv4());
-  if (cachedUUID) {
-    uuid = cachedUUID;
-  } else {
-    localStorage.setItem(CONSTANTS.uniqueIdCookie, uuid);
-  }
+    : "";
+  uuid = cachedUUID || uuidv4();
+  localStorage.setItem(CONSTANTS.uniqueIdCookie, uuid);
   socketIO.initialize({ uuid });
   return uuid;
 })();
