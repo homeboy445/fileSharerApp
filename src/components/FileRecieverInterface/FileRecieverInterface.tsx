@@ -102,7 +102,6 @@ const FileRecieverInterface = ({
     link: string;
     fileId: number;
   }) => {
-    console.log("File received: ", dataObj.name);
     let linkReceived = 0;
     for (let idx = 0; idx < filesInfo.length; idx++) {
       if (filesInfo[idx].fileId === dataObj.fileId) {

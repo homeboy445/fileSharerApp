@@ -126,8 +126,46 @@ const App = () => {
   }, []);
 
   const isNonDesktopDevice = width < 1000;
+
+  const renderComponentWithGlobalContext = (component: any): any => {
+    return (
+      <globalDataContext.Provider
+        value={{
+          logToUI,
+          queueMessagesForReloads,
+          getUserId: () => uniqueUserId,
+          isDebugMode: () => !!queryParams["debugMode"],
+          isNonDesktopDevice,
+          serverUrl:
+            process.env.REACT_APP_MODE === "dev"
+              ? CONSTANTS.devServerURL
+              : CONSTANTS.serverURL,
+          isInitiator: window.location.search.indexOf("?id=") > -1 ? false : true,
+          currentTransmissionMode: currentFileTransmissionMode.current,
+        }}
+      >
+        {component}
+      </globalDataContext.Provider>
+    );
+  };
+
+  if (showFileSharerDialog && !queryParams["id"]) {
+    return renderComponentWithGlobalContext(
+      <FileSenderInterface
+        uniqueId={uniqueUserId}
+        closeDialogBox={() => {
+          window.location.href = "/";
+        }}
+      />
+    );
+  } else if (queryParams["id"]) {
+    return renderComponentWithGlobalContext(
+      <FileRecieverInterface roomId={queryParams["id"] || ""} />
+    );
+  }
+
   return (
-    <div>
+    <div className="main_parent">
       {messagesToBeDisplayed.map((messageObj, index) => {
         return (
           <MessageBox
@@ -190,34 +228,6 @@ const App = () => {
           </div>
         </div>
       </div>
-      <globalDataContext.Provider
-        value={{
-          logToUI,
-          queueMessagesForReloads,
-          getUserId: () => uniqueUserId,
-          isDebugMode: () => !!queryParams["debugMode"],
-          isNonDesktopDevice,
-          serverUrl: (process.env.REACT_APP_MODE === "dev"
-          ? CONSTANTS.devServerURL
-          : CONSTANTS.serverURL),
-          isInitiator: window.location.search.indexOf("?id=") > -1 ? false : true,
-          currentTransmissionMode: currentFileTransmissionMode.current
-        }}
-      >
-        {showFileSharerDialog && !queryParams["id"] ? (
-          <FileSenderInterface
-            uniqueId={uniqueUserId}
-            closeDialogBox={function (): void {
-              window.location.href = "/";
-            }}
-          />
-        ) : null}
-        {queryParams["id"] ? (
-          <FileRecieverInterface
-            roomId={queryParams["id"] || ""}
-          />
-        ) : null}
-      </globalDataContext.Provider>
     </div>
   );
 };

@@ -76,7 +76,6 @@ class P2PManager {
 
   private generateSignal(): void {
     this?.peer?.on("signal", (signal: string) => {
-      // console.log("generating signal: ", signal);
       peerConfig.signalData.push(signal);
       if (peerConfig.signalSent || !this.isInitiator) {
         // In case some new signal is generated after we've sent previously generated signals!
