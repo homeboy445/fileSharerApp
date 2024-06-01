@@ -257,6 +257,7 @@ const FileSenderInterface = ({
         uuid: uniqueId,
       }
     );
+    console.log('registered the listener!');
     p2pManager.on(P2PEvents.PROGRESS, updatePercentageWrapper);
     p2pManager.on(P2PEvents.CONNECTED, updatePeerConnectionStatus);
   }, [percentageStore]);
@@ -277,7 +278,7 @@ const FileSenderInterface = ({
                 </h2>
                 <QRCode
                   value={shareableLink}
-                  size={256}
+                  size={200}
                   style={{ margin: "5%" }}
                 />
                 <h2>Or, share this link...</h2>
@@ -473,7 +474,6 @@ const FileSenderInterface = ({
       )}
       <h3
         id="userCount"
-        style={fileTransferrer.isMultiFileMode ? {} : { marginTop: "10%" }}
       >
         {userIds.length === 0
           ? "No user is connected as of yet!"
