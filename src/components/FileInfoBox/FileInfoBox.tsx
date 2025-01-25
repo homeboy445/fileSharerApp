@@ -11,7 +11,7 @@ import { globalDataContext } from "../../contexts/context";
 
 const FileInfoBox = ({
   fileInfo,
-  receivedInfoStore
+  receivedInfoStore,
 }: {
   fileInfo: {
     name: string;
@@ -19,7 +19,7 @@ const FileInfoBox = ({
     size: number;
     fileId?: string | number;
   };
-  receivedInfoStore: { [fileId: string]: number }
+  receivedInfoStore: { [fileId: string]: number };
 }) => {
   const globalUtilStore = useContext(globalDataContext);
 
@@ -39,7 +39,7 @@ const FileInfoBox = ({
       // document: ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt"],
     };
 
-    const extension = fileName.split(".")?.pop?.()?.toLowerCase?.();
+    const extension = fileName.split(".").pop()?.toLowerCase() || "";
     if (!extension) {
       return DocumentIcon;
     }
@@ -53,19 +53,18 @@ const FileInfoBox = ({
     return DocumentIcon;
   };
 
-  const fileTypeInterceptedFromFileName =
-    fileInfo?.name &&
-    fileInfo?.name.substring(
-      fileInfo?.name.lastIndexOf(".") + 1,
-      fileInfo?.name.length
-    );
-  const fileName = fileInfo?.name || "loading...";
+  const fileTypeInterceptedFromFileName = fileInfo.name.substring(
+    fileInfo.name.lastIndexOf(".") + 1,
+    fileInfo.name.length
+  );
+  const fileName = fileInfo.name || "loading...";
   const fileNameElement =
     fileName.length >= 45 && !globalUtilStore.isNonDesktopDevice ? (
       <Hoverable element={<span>{fileName}</span>} text={fileName} />
     ) : (
       fileName
     );
+  console.log("fileinfo -> ", fileInfo);
   return (
     <div className="main-file-info-bx">
       <img src={getFileIcon(fileName)} alt="" />
@@ -80,9 +79,7 @@ const FileInfoBox = ({
           <tr>
             <td>File Type:</td>
             <td>
-              {fileInfo?.type ||
-                fileTypeInterceptedFromFileName ||
-                "loading..."}
+              {fileInfo.type || fileTypeInterceptedFromFileName || "loading..."}
             </td>
           </tr>
         </tbody>
@@ -90,19 +87,17 @@ const FileInfoBox = ({
           <tr>
             <td>File Size:</td>
             <td>
-              {((fileInfo?.size ?? 0) / (1024 * 1024)).toFixed(2)}
+              {(fileInfo.size / (1024 * 1024)).toFixed(2)}
               Mb
             </td>
           </tr>
         </tbody>
-        <tbody>
+        {/* <tbody>
           <tr>
             <td>Data received:</td>
-            <td>
-              {receivedInfoStore[fileInfo?.fileId || ""] || 0} Mb
-            </td>
+            <td>{receivedInfoStore[fileInfo.fileId || ""] || 0} Mb</td>
           </tr>
-        </tbody>
+        </tbody> */}
       </table>
     </div>
   );
