@@ -33,6 +33,7 @@ const FileRecieverInterface = ({
   const [transmissionBegan, updateTransmissionStatus] = useState(false);
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
   const sessionTimeouts = useRef<NodeJS.Timeout[]>([]);
+  const [fileDataReceivedInMb, updateFileDataReceived] = useState({});
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -102,7 +103,6 @@ const FileRecieverInterface = ({
     link: string;
     fileId: number;
   }) => {
-    console.log("File received: ", dataObj.name);
     let linkReceived = 0;
     for (let idx = 0; idx < filesInfo.length; idx++) {
       if (filesInfo[idx].fileId === dataObj.fileId) {
@@ -116,9 +116,10 @@ const FileRecieverInterface = ({
     updateFilesInfo([ ...filesInfo ]);
   }
 
-  const p2pOnProgress = (fileObject: p2pFilePacket) => {
+  const p2pOnProgress = (fileObject: p2pFilePacket, sentDataInMb: number) => {
     if (fileObject.fileId && fileObject.fileId !== -1 && filesInfo.length !== 0) {
       updatePercentage(fileObject.fileId, fileObject.percentage);
+      updateFileDataReceived(sentDataInMb);
     }
   }
 
@@ -213,7 +214,7 @@ const FileRecieverInterface = ({
           ?
           <>
             <div className="main-container-1">
-              <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} />
+              <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} receivedInfoStore={fileDataReceivedInMb}/>
               <div
                 className="progress-bar-list"
                 style={{ overflowY: filesInfo.length > 4 ? "scroll" : "hidden" }}
@@ -256,7 +257,7 @@ const FileRecieverInterface = ({
                   updateSelectedFileIndex(selectedFileIndex + 1);
                 }}>Next</button>
             </div>
-            <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} />
+            <FileInfoBox fileInfo={filesInfo[selectedFileIndex]} receivedInfoStore={fileDataReceivedInMb}/>
             <div style={{ marginTop: "10%" }}>
                 {
                   <ProgressBar

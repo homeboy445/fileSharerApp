@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { v4 } from "uuid";
-import DownloadIcon from "../../assets/download.png";
+import DownloadIcon from "../../assets/download.svg";
 import "./ProgressBar.css";
 
 const ProgressBar = ({
