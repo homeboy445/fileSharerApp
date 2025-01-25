@@ -55,6 +55,7 @@ const FileSenderInterface = ({
   const [fileTransferComplete, updateFileTransferStatus] = useState(false);
   const [elapsedTime, updateElapsedTime] = useState<number>(0);
   const sessionTimeout = useRef<NodeJS.Timeout[]>([]);
+  const [fileDataReceivedInMb, updateFileDataReceived] = useState({});
 
   const unloadFnRef = useRef((e: any) => {
     e.preventDefault();
@@ -244,9 +245,10 @@ const FileSenderInterface = ({
     };
   }, [userStore, percentageStore, fileTransferComplete, isPeerConnected]);
 
-  const updatePercentageWrapper = ({ fileId, percentage, name }: p2pFilePacket) => {
+  const updatePercentageWrapper = ({ fileId, percentage }: p2pFilePacket, sentDataInMb: number) => {
     // TODO: Check if the listeners for this stacks up!
     updatePercentageInStore({ fileId, percentage, userId: Object.keys(userStore)[0] });
+    updateFileDataReceived(Object.assign({ [fileId]: sentDataInMb }, fileDataReceivedInMb));
   };
 
   useEffect(() => {
@@ -260,7 +262,7 @@ const FileSenderInterface = ({
     console.log('registered the listener!');
     p2pManager.on(P2PEvents.PROGRESS, updatePercentageWrapper);
     p2pManager.on(P2PEvents.CONNECTED, updatePeerConnectionStatus);
-  }, [percentageStore]);
+  }, [percentageStore, fileDataReceivedInMb]);
 
   const userIds = Object.keys(userStore);
   return (
@@ -269,6 +271,7 @@ const FileSenderInterface = ({
         <div className="main-container-1">
           <FileInfoBox
             fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)}
+            receivedInfoStore={fileDataReceivedInMb}
           />
           <div className="main-file-transmission-section">
             {!didFileTransferStart ? (
@@ -423,6 +426,7 @@ const FileSenderInterface = ({
               </div>
               <FileInfoBox
                 fileInfo={fileTransferrer.getFileInfo(selectedFileIndex)}
+                receivedInfoStore={fileDataReceivedInMb}
               />
               <div style={{ marginTop: "10%" }}>
                 {fileTransferrer.isMultiFileMode && filesInfo.length > 0 ? (

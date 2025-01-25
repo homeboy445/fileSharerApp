@@ -333,9 +333,11 @@ class P2PFileHandler {
         roomId: socketIO.getCurrentRoomId()
       };
       let sentDataChunkSize = 0;
-      const updatePercentage = (percentage: number) => eventBus.trigger(P2PEvents.PROGRESS, { ...fileDataObject, percentage });
+      const updatePercentage = (percentage: number, sentDataInMb = 0) => {
+        eventBus.trigger(P2PEvents.PROGRESS, { ...fileDataObject, percentage, sentDataInMb });
+      }
       console.log("Sending file: ", fileDataObject);
-      updatePercentage(0);
+      updatePercentage(0, 0);
       this.socketInstance.emit("file-transfer-info-channel", fileDataObject);
       await listenForFileInfoAcknowledgement();
       await this.generateFileStream(files[idx].get(), async (data) => {
@@ -345,11 +347,11 @@ class P2PFileHandler {
         await p2pManager.sendData(data.stream);
         sentDataChunkSize += data.stream.length;
         const currentPercentage = 100 - calcPercentage(fileDataObject.size, sentDataChunkSize);
-        updatePercentage(currentPercentage);
+        updatePercentage(currentPercentage, sentDataChunkSize / (1024 * 1024));
       });
       await listenForFileReceivedCompletion();
       console.log("Sending file complete! ", fileDataObject);
-      updatePercentage(100);
+      updatePercentage(100, files[idx].get().size);
     }
     eventBus.trigger(P2PEvents.FILE_SENDING_COMPLETE);
   }

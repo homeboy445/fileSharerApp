@@ -11,6 +11,7 @@ import { globalDataContext } from "../../contexts/context";
 
 const FileInfoBox = ({
   fileInfo,
+  receivedInfoStore
 }: {
   fileInfo: {
     name: string;
@@ -18,6 +19,7 @@ const FileInfoBox = ({
     size: number;
     fileId?: string | number;
   };
+  receivedInfoStore: { [fileId: string]: number }
 }) => {
   const globalUtilStore = useContext(globalDataContext);
 
@@ -90,6 +92,14 @@ const FileInfoBox = ({
             <td>
               {((fileInfo?.size ?? 0) / (1024 * 1024)).toFixed(2)}
               Mb
+            </td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr>
+            <td>Data received:</td>
+            <td>
+              {receivedInfoStore[fileInfo?.fileId || ""] || 0} Mb
             </td>
           </tr>
         </tbody>
